@@ -1,0 +1,8 @@
+{
+  "enemy_kill": 100,
+  "boss_kill": 500,
+  "encounter_clear": 50,
+  "item_pickup": 75,
+  "evolution": 250,
+  "win_bonus": 2000
+}

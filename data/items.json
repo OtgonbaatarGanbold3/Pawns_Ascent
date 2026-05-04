@@ -1,0 +1,43 @@
+{
+  "shard_of_rank": {
+    "display_name": "Shard of Rank",
+    "school": "shadow",
+    "stats": { "atk": 2 },
+    "trigger_id": "",
+    "ai_behavior": { "mode": "attack", "weight": 8 },
+    "flavor": "A fragment of a higher piece. Carries their violence."
+  },
+  "ward_rune": {
+    "display_name": "Ward Rune",
+    "school": "holy",
+    "stats": { "def": 3 },
+    "trigger_id": "",
+    "ai_behavior": { "mode": "defend", "weight": 8 },
+    "flavor": "Carved by a bishop who forgot the words."
+  },
+  "iron_chain": {
+    "display_name": "Iron Chain",
+    "school": "siege",
+    "stats": { "hp": 5 },
+    "trigger_id": "",
+    "ai_behavior": { "mode": "aggressive", "weight": 7 },
+    "flavor": "The law made physical."
+  },
+  "bleeders_mark": {
+    "display_name": "Bleeder's Mark",
+    "school": "shadow",
+    "stats": { "atk": 1 },
+    "trigger_id": "on_hit_bleed",
+    "ai_behavior": { "mode": "attack", "weight": 9 },
+    "flavor": "Wounds that do not close."
+  },
+  "mending_word": {
+    "display_name": "Mending Word",
+    "school": "holy",
+    "stats": {},
+    "trigger_id": "on_kill_heal",
+    "trigger_value": 3,
+    "ai_behavior": { "mode": "attack", "weight": 5 },
+    "flavor": "Something returns when something ends."
+  }
+}

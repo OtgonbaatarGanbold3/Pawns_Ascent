@@ -1,0 +1,14 @@
+{
+  "board": { "rows": 8, "cols": 9 },
+  "player_spawn_quadrant": "bottom_left",
+  "enemy_spawn_quadrant": "top_right",
+  "terrain_mutation_turns": 5,
+  "item_draft_size": 3,
+  "starter_items": ["shard_of_rank", "bleeders_mark"],
+  "encounters": [
+    { "enemy_types": ["pawn"], "spawn_min": 1, "spawn_max": 1 },
+    { "enemy_types": ["pawn"], "spawn_min": 2, "spawn_max": 2 },
+    { "enemy_types": ["knight", "bishop", "rook"], "spawn_min": 4, "spawn_max": 6 },
+    { "enemy_types": ["king"], "spawn_min": 1, "spawn_max": 1, "is_boss": true }
+  ]
+}

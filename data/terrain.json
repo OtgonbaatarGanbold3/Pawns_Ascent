@@ -1,0 +1,44 @@
+{
+  "normal": {
+    "base_weight": 60,
+    "entry_effect": { "type": "", "amount": 0 },
+    "standing_effect": { "type": "", "amount": 0 },
+    "combat_mod": { "atk_bonus": 0, "damage_reduce": 0 },
+    "fog": false
+  },
+  "cursed": {
+    "base_weight": 8,
+    "entry_effect": { "type": "hp", "amount": -1 },
+    "standing_effect": { "type": "", "amount": 0 },
+    "combat_mod": { "atk_bonus": 0, "damage_reduce": 0 },
+    "fog": false
+  },
+  "fire": {
+    "base_weight": 6,
+    "entry_effect": { "type": "hp", "amount": -2 },
+    "standing_effect": { "type": "burn", "amount": 1 },
+    "combat_mod": { "atk_bonus": 0, "damage_reduce": 0 },
+    "fog": false
+  },
+  "blessed": {
+    "base_weight": 6,
+    "entry_effect": { "type": "", "amount": 0 },
+    "standing_effect": { "type": "", "amount": 0 },
+    "combat_mod": { "atk_bonus": 0, "damage_reduce": 1 },
+    "fog": false
+  },
+  "elevated": {
+    "base_weight": 8,
+    "entry_effect": { "type": "", "amount": 0 },
+    "standing_effect": { "type": "", "amount": 0 },
+    "combat_mod": { "atk_bonus": 1, "damage_reduce": 0 },
+    "fog": false
+  },
+  "fog": {
+    "base_weight": 4,
+    "entry_effect": { "type": "", "amount": 0 },
+    "standing_effect": { "type": "", "amount": 0 },
+    "combat_mod": { "atk_bonus": 0, "damage_reduce": 0 },
+    "fog": true
+  }
+}

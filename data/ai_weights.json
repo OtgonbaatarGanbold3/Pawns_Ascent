@@ -1,0 +1,17 @@
+{
+  "piece_base_weights": {
+    "pawn": { "aggressive": 4, "attack": 3, "defend": 1, "flee": 0 },
+    "knight": { "aggressive": 6, "attack": 4, "defend": 1, "flee": 0 },
+    "bishop": { "aggressive": 3, "attack": 3, "defend": 4, "flee": 1 },
+    "rook": { "aggressive": 5, "attack": 6, "defend": 3, "flee": 0 },
+    "queen": { "aggressive": 8, "attack": 6, "defend": 2, "flee": 0 },
+    "king": { "aggressive": 5, "attack": 5, "defend": 6, "flee": 0 }
+  },
+  "boss_modifier": { "aggressive": 6, "attack": 4, "defend": 0, "flee": 0 },
+  "hp_modifiers": {
+    "defend_below": 0.5,
+    "defend_add": 4,
+    "flee_below": 0.3,
+    "flee_add": 8
+  }
+}

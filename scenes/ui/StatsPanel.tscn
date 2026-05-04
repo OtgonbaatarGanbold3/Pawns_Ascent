@@ -1,0 +1,36 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/StatsPanel.gd" id=1]
+
+[node name="StatsPanel" type="VBoxContainer"]
+script = ExtResource("1")
+
+[node name="PhaseLabel" type="Label" parent="."]
+text = "Phase: -"
+
+[node name="TurnLabel" type="Label" parent="."]
+text = "Turn: -"
+
+[node name="PieceLabel" type="Label" parent="."]
+text = "Piece: -"
+
+[node name="HpLabel" type="Label" parent="."]
+text = "HP: -"
+
+[node name="AtkLabel" type="Label" parent="."]
+text = "ATK: -"
+
+[node name="DefLabel" type="Label" parent="."]
+text = "DEF: -"
+
+[node name="SpdLabel" type="Label" parent="."]
+text = "SPD: -"
+
+[node name="ApLabel" type="Label" parent="."]
+text = "AP: -"
+
+[node name="KillsLabel" type="Label" parent="."]
+text = "Kills: -"
+
+[node name="ItemsLabel" type="Label" parent="."]
+text = "Items: -"
