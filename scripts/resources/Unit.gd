@@ -11,6 +11,8 @@ var is_boss: bool = false
 
 var items: Array = []
 var status_effects: Dictionary = {}
+var active_synergies: Array = []
+var synergy_effects: Dictionary = {}
 var kills: int = 0
 
 var base_hp: int = 0
@@ -74,6 +76,8 @@ func _rebuild_derived_stats() -> void:
 	var def_bonus = 0
 	var spd_bonus = 0
 	var ap_bonus = 0
+	active_synergies = []
+	synergy_effects = {}
 
 	for item in items:
 		var stats: Dictionary = item.get("stats", {})
@@ -82,6 +86,31 @@ func _rebuild_derived_stats() -> void:
 		def_bonus += int(stats.get("def", 0))
 		spd_bonus += int(stats.get("spd", 0))
 		ap_bonus += int(stats.get("ap", 0))
+
+	var school_counts: Dictionary = {}
+	for item in items:
+		var school: String = item.get("school", "")
+		if school.is_empty():
+			continue
+		school_counts[school] = int(school_counts.get(school, 0)) + 1
+
+	var synergies: Dictionary = DataLoader.load_config("synergies")
+	for school in synergies.keys():
+		var synergy: Dictionary = synergies[school]
+		var threshold: int = int(synergy.get("threshold", 2))
+		if int(school_counts.get(school, 0)) < threshold:
+			continue
+		active_synergies.append(synergy.get("display_name", str(school).capitalize()))
+		var stats: Dictionary = synergy.get("stats", {})
+		hp_bonus += int(stats.get("hp", 0))
+		atk_bonus += int(stats.get("atk", 0))
+		def_bonus += int(stats.get("def", 0))
+		spd_bonus += int(stats.get("spd", 0))
+		ap_bonus += int(stats.get("ap", 0))
+		for effect_key in synergy.keys():
+			if effect_key in ["display_name", "threshold", "stats"]:
+				continue
+			synergy_effects[effect_key] = synergy[effect_key]
 
 	max_hp = base_hp + hp_bonus
 	atk = base_atk + atk_bonus

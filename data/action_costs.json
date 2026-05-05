@@ -1,5 +1,8 @@
 {
   "move": 1,
   "attack": 1,
-  "wait": 1
+  "wait": 1,
+  "one_action_per_unit_phase": true,
+  "enemy_action_delay_ms": 120,
+  "move_animation_seconds": 0.18
 }

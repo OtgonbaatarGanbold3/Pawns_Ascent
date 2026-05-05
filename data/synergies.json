@@ -1,0 +1,20 @@
+{
+  "shadow": {
+    "display_name": "Shadow",
+    "threshold": 2,
+    "stats": { "atk": 3 },
+    "ignore_def": 1
+  },
+  "holy": {
+    "display_name": "Holy",
+    "threshold": 2,
+    "stats": { "hp": 4 },
+    "regen_per_tick": 2
+  },
+  "siege": {
+    "display_name": "Siege",
+    "threshold": 2,
+    "stats": { "hp": 5 },
+    "stationary_def": 2
+  }
+}

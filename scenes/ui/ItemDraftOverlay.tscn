@@ -4,17 +4,27 @@
 
 [node name="ItemDraftOverlay" type="Control"]
 visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 script = ExtResource("1")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.015, 0.018, 0.022, 0.76)
 
 [node name="Panel" type="PanelContainer" parent="."]
 
 [node name="VBox" type="VBoxContainer" parent="Panel"]
 
 [node name="TitleLabel" type="Label" parent="Panel/VBox"]
-text = "Item Draft"
+text = "The Plain Offers Relics"
 
 [node name="DescLabel" type="Label" parent="Panel/VBox"]
-text = "Choose one item"
+text = "Choose one relic to carry into the next level."
 
 [node name="Buttons" type="HBoxContainer" parent="Panel/VBox"]
 
@@ -28,4 +38,4 @@ text = "Item 2"
 text = "Item 3"
 
 [node name="SkipButton" type="Button" parent="Panel/VBox"]
-text = "Skip"
+text = "Leave Them"

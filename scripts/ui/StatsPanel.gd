@@ -16,29 +16,29 @@ func _ready() -> void:
     _apply_font_sizes(20)
 
 func set_phase(phase_text: String, turn: int) -> void:
-    phase_label.text = "Phase: %s" % phase_text
-    turn_label.text = "Turn: %d" % turn
+    phase_label.text = "%s has the move" % phase_text
+    turn_label.text = "Ring %d" % turn
 
 func update_unit(unit: Unit) -> void:
     if unit == null:
-        piece_label.text = "Piece: -"
+        piece_label.text = "Form: -"
         hp_label.text = "HP: -"
         atk_label.text = "ATK: -"
         def_label.text = "DEF: -"
         spd_label.text = "SPD: -"
         ap_label.text = "AP: -"
-        kills_label.text = "Kills: -"
-        items_label.text = "Items: -"
+        kills_label.text = "Fallen: -"
+        items_label.text = "Relics: -"
         return
 
-    piece_label.text = "Piece: %s" % unit.display_name
+    piece_label.text = "Form: %s" % unit.display_name
     hp_label.text = "HP: %d/%d" % [unit.hp, unit.max_hp]
     atk_label.text = "ATK: %d" % unit.atk
     def_label.text = "DEF: %d" % unit.def
     spd_label.text = "SPD: %d" % unit.spd
     ap_label.text = "AP: %d/%d" % [unit.ap, unit.max_ap]
-    kills_label.text = "Kills: %d" % unit.kills
-    items_label.text = "Items: %d" % unit.items.size()
+    kills_label.text = "Fallen: %d" % unit.kills
+    items_label.text = "Relics: %d" % unit.items.size()
 
 func _apply_font_sizes(font_size: int) -> void:
     for label in [phase_label, turn_label, piece_label, hp_label, atk_label, def_label, spd_label, ap_label, kills_label, items_label]:

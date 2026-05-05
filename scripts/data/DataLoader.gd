@@ -13,6 +13,8 @@ static var _paths := {
     "statuses": "res://data/statuses.json",
     "evolution_rules": "res://data/evolution_rules.json",
     "action_costs": "res://data/action_costs.json",
+    "synergies": "res://data/synergies.json",
+    "run_nodes": "res://data/run_nodes.json",
 }
 
 static func load_config(config_name: String) -> Variant:

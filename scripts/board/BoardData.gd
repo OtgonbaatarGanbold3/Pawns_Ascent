@@ -18,20 +18,20 @@ func init_board(new_rows: int, new_cols: int) -> void:
 func is_in_bounds(pos: Vector2i) -> bool:
     return pos.x >= 0 and pos.y >= 0 and pos.x < cols and pos.y < rows
 
-func get_tile(pos: Vector2i):
+func get_tile(pos: Vector2i) -> Tile:
     if not is_in_bounds(pos):
         return null
     return tiles[pos.y][pos.x]
 
-func set_tile(pos: Vector2i, tile) -> void:
+func set_tile(pos: Vector2i, tile: Tile) -> void:
     if not is_in_bounds(pos):
         return
     tiles[pos.y][pos.x] = tile
     if tile != null:
         tile.position = pos
 
-func set_unit(pos: Vector2i, unit) -> void:
-    var tile = get_tile(pos)
+func set_unit(pos: Vector2i, unit: Unit) -> void:
+    var tile: Tile = get_tile(pos)
     if tile == null:
         return
     tile.piece = unit
@@ -39,7 +39,7 @@ func set_unit(pos: Vector2i, unit) -> void:
         unit.position = pos
 
 func clear_unit(pos: Vector2i) -> void:
-    var tile = get_tile(pos)
+    var tile: Tile = get_tile(pos)
     if tile == null:
         return
     tile.piece = null

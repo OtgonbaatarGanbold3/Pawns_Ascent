@@ -1,0 +1,35 @@
+[gd_scene format=3 uid="uid://ykfy76s54hni"]
+
+[ext_resource type="Script" uid="uid://ddbohmpbetm7" path="res://scripts/ui/PathMap.gd" id="1_vbd8t"]
+
+[node name="PathMap" type="Control" unique_id=361189674]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_vbd8t")
+
+[node name="Backdrop" type="ColorRect" parent="." unique_id=184107626]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.015, 0.018, 0.022, 0.78)
+
+[node name="Panel" type="PanelContainer" parent="." unique_id=1582564477]
+layout_mode = 0
+
+[node name="VBox" type="VBoxContainer" parent="Panel" unique_id=338473627]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="Panel/VBox" unique_id=1306221799]
+layout_mode = 2
+text = "The Outer Plain"
+
+[node name="SubtitleLabel" type="Label" parent="Panel/VBox" unique_id=1878539369]
+layout_mode = 2
+text = "Choose the next square."
+
+[node name="NodesRow" type="HBoxContainer" parent="Panel/VBox" unique_id=905730443]
+layout_mode = 2
+
+[node name="DetailLabel" type="Label" parent="Panel/VBox" unique_id=2184755]
+layout_mode = 2

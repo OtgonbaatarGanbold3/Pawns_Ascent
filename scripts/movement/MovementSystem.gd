@@ -24,6 +24,9 @@ static func get_adjacent_positions(pos: Vector2i) -> Array[Vector2i]:
 static func is_adjacent(a: Vector2i, b: Vector2i) -> bool:
 	return abs(a.x - b.x) + abs(a.y - b.y) == 1
 
+static func is_blocked(tile: Tile) -> bool:
+	return tile != null and bool(tile.terrain_data.get("blocks_movement", false))
+
 static func get_adjacent_enemies(unit: Unit, board: BoardData) -> Array[Unit]:
 	var enemies: Array[Unit] = []
 	for pos in get_adjacent_positions(unit.position):
@@ -44,6 +47,8 @@ static func _ray_moves(unit: Unit, board: BoardData, directions: Array, max_rang
 			var tile = board.get_tile(pos)
 			if tile == null:
 				break
+			if is_blocked(tile):
+				break
 			if tile.piece != null:
 				break
 			moves.append(pos)
@@ -60,7 +65,7 @@ static func _knight_moves(unit: Unit, board: BoardData) -> Array[Vector2i]:
 		if not board.is_in_bounds(pos):
 			continue
 		var tile = board.get_tile(pos)
-		if tile == null or tile.piece != null:
+		if tile == null or is_blocked(tile) or tile.piece != null:
 			continue
 		moves.append(pos)
 	return moves

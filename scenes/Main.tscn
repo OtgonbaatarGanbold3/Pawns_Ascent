@@ -6,10 +6,15 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/CombatLog.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ItemDraftOverlay.tscn" id="5"]
 [ext_resource type="PackedScene" path="res://scenes/ui/EndScreen.tscn" id="6"]
+[ext_resource type="PackedScene" uid="uid://ykfy76s54hni" path="res://scenes/ui/PathMap.tscn" id="7_nxtc6"]
 
 [node name="Main" type="Control" unique_id=2062950923]
 layout_mode = 3
-anchors_preset = 0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1")
 
 [node name="Background" type="ColorRect" parent="." unique_id=1433269064]
@@ -17,17 +22,15 @@ layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-color = Color(0.07, 0.07, 0.09, 1)
+color = Color(0.045, 0.05, 0.06, 1)
 
-[node name="BoardBackdrop" type="ColorRect" parent="." unique_id=1062387931]
+[node name="BoardBackdrop" type="Panel" parent="." unique_id=1062387931]
 layout_mode = 0
 mouse_filter = 2
-color = Color(0.12, 0.12, 0.15, 1)
 
-[node name="UIBackdrop" type="ColorRect" parent="." unique_id=916512293]
+[node name="UIBackdrop" type="Panel" parent="." unique_id=916512293]
 layout_mode = 0
 mouse_filter = 2
-color = Color(0.12, 0.14, 0.16, 0.9)
 
 [node name="BoardView" parent="." unique_id=222874683 instance=ExtResource("2")]
 anchors_preset = 0
@@ -44,37 +47,76 @@ size_flags_vertical = 3
 
 [node name="LeftColumn" type="VBoxContainer" parent="BottomBar/BarRow" unique_id=1249470766]
 layout_mode = 2
-size_flags_horizontal = 0
+size_flags_horizontal = 3
 
 [node name="TitleLabel" type="Label" parent="BottomBar/BarRow/LeftColumn" unique_id=1906586452]
 layout_mode = 2
-text = "Pawn's Ascent - MVP"
+text = "Pawn's Ascent"
 
 [node name="StatsPanel" parent="BottomBar/BarRow/LeftColumn" unique_id=2115254572 instance=ExtResource("3")]
 layout_mode = 2
 
+[node name="Divider1" type="VSeparator" parent="BottomBar/BarRow" unique_id=89254788]
+layout_mode = 2
+
 [node name="CombatLog" parent="BottomBar/BarRow" unique_id=1822783305 instance=ExtResource("4")]
+visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="CombatLog2" parent="BottomBar/BarRow" unique_id=545376886 instance=ExtResource("4")]
+[node name="CenterColumn" type="VBoxContainer" parent="BottomBar/BarRow" unique_id=1628352613]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EnemyHeader" type="Label" parent="BottomBar/BarRow/CenterColumn" unique_id=1013180813]
+layout_mode = 2
+text = "Nearest Threat"
+
+[node name="EnemyInfoLabel" type="Label" parent="BottomBar/BarRow/CenterColumn" unique_id=1503327445]
+layout_mode = 2
+text = "No enemy sighted."
+
+[node name="TurnOrderLabel" type="Label" parent="BottomBar/BarRow/CenterColumn" unique_id=2048095239]
+layout_mode = 2
+text = "Turn: -"
+
+[node name="TileInfoLabel" type="Label" parent="BottomBar/BarRow/CenterColumn" unique_id=420721046]
+layout_mode = 2
+text = "Tile: -"
+autowrap_mode = 3
+
+[node name="Divider2" type="VSeparator" parent="BottomBar/BarRow" unique_id=401398390]
 layout_mode = 2
 
 [node name="RightColumn" type="VBoxContainer" parent="BottomBar/BarRow" unique_id=2099254984]
 layout_mode = 2
-size_flags_horizontal = 0
+size_flags_horizontal = 3
+
+[node name="ItemsHeader" type="Label" parent="BottomBar/BarRow/RightColumn" unique_id=398654772]
+layout_mode = 2
+text = "Relics"
+
+[node name="ItemsListLabel" type="Label" parent="BottomBar/BarRow/RightColumn" unique_id=994983045]
+layout_mode = 2
+text = "None"
 
 [node name="EndTurnButton" type="Button" parent="BottomBar/BarRow/RightColumn" unique_id=426578338]
 layout_mode = 2
-text = "End Turn"
+text = "Yield the Move"
 
 [node name="HintLabel" type="Label" parent="BottomBar/BarRow/RightColumn" unique_id=160107535]
 layout_mode = 2
-text = "O = You, [] = Enemy. Light tiles = Move range. Red tiles = Attack range. Click your piece, then move or attack."
+text = "Select the Unranked, then choose a blue tile to move or a red tile to strike."
 
 [node name="ItemDraftOverlay" parent="." unique_id=1186685689 instance=ExtResource("5")]
 anchors_preset = 0
 
 [node name="EndScreen" parent="." unique_id=463775361 instance=ExtResource("6")]
 anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="PathMap" parent="." unique_id=361189674 instance=ExtResource("7_nxtc6")]
+visible = false
+layout_mode = 0

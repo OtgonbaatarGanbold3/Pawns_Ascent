@@ -9,7 +9,8 @@ func _ready() -> void:
     attacker.init_from_piece("pawn", pieces.get("pawn", {}))
     defender.init_from_piece("pawn", pieces.get("pawn", {}))
 
-    ItemSystem.apply_items(attacker, [items.get("bleeders_mark", {}), items.get("mending_word", {})])
+    ItemSystem.apply_items(attacker, [items.get("shard_of_rank", {}), items.get("bleeders_mark", {}), items.get("mending_word", {})])
+    print("ItemTest synergies:", attacker.active_synergies)
 
     var event_bus: Node = Engine.get_main_loop().root.get_node("EventBus")
     event_bus.emit_event(event_bus.EVENT_ATTACK_HIT, {

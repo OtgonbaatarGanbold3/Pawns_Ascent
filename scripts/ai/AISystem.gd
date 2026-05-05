@@ -72,6 +72,29 @@ static func decide_action(unit: Unit, board: BoardData, player: Unit) -> Diction
         _:
             return {"type": "move", "target": _choose_move_toward(moves, player.position)}
 
+static func describe_intent(unit: Unit, board: BoardData, player: Unit) -> String:
+    if unit == null or player == null:
+        return "Waiting."
+    if MovementSystem.is_adjacent(unit.position, player.position):
+        return "Strike the Unranked."
+    var priority := calculate_priority(unit)
+    var mode := choose_behavior(priority)
+    match mode:
+        "flee":
+            return "Pull away from danger."
+        "defend":
+            if board != null:
+                var moves := MovementSystem.get_valid_moves(unit, board)
+                if not moves.is_empty():
+                    var tile = board.get_tile(_choose_defensive_tile(moves, board))
+                    if tile != null and tile.terrain_id in ["blessed", "elevated"]:
+                        return "Claim %s ground." % tile.terrain_id.capitalize()
+            return "Hold a safer line."
+        "attack":
+            return "Close in for a killing blow."
+        _:
+            return "Advance with the law."
+
 static func _choose_move_toward(moves: Array[Vector2i], target: Vector2i) -> Vector2i:
     var best: Vector2i = moves[0]
     var best_dist := _manhattan(best, target)

@@ -26,6 +26,9 @@ func start_enemy_phase(enemies: Array) -> Array:
 func start_tick_phase(units: Array, board: BoardData) -> void:
     phase = Phase.TICK
     for unit in units:
+        var regen: int = int(unit.synergy_effects.get("regen_per_tick", 0))
+        if regen > 0 and unit.hp > 0:
+            unit.hp = min(unit.max_hp, unit.hp + regen)
         var tile = board.get_tile(unit.position)
         if tile == null:
             continue

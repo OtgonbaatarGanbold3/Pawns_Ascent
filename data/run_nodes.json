@@ -1,0 +1,90 @@
+{
+  "run": {
+    "zone_name": "The Outer Plain",
+    "final_floor": 7,
+    "starting_available": 2
+  },
+  "node_types": {
+    "combat": {
+      "label": "Combat",
+      "icon": "Swords",
+      "summary": "The law has sent pieces forward.",
+      "reward": "draft",
+      "score_event": "encounter_clear"
+    },
+    "elite": {
+      "label": "Elite",
+      "icon": "Skull",
+      "summary": "A stronger piece waits where the board narrows.",
+      "reward": "elite_draft",
+      "score_event": "encounter_clear"
+    },
+    "relic": {
+      "label": "Relic",
+      "icon": "Relic",
+      "summary": "Something carried once. Something left behind.",
+      "reward": "draft",
+      "score_event": "item_pickup"
+    },
+    "rest": {
+      "label": "Rest",
+      "icon": "Flame",
+      "summary": "A still square. The Plain has not noticed yet.",
+      "heal_percent": 0.3,
+      "reward": "heal"
+    },
+    "story": {
+      "label": "Story",
+      "icon": "Scroll",
+      "summary": "A piece speaks before the law closes its hand.",
+      "reward": "story"
+    },
+    "ambush": {
+      "label": "Ambush",
+      "icon": "!",
+      "summary": "The board chooses first.",
+      "reward": "draft",
+      "score_event": "encounter_clear"
+    },
+    "boss": {
+      "label": "Boss",
+      "icon": "Crown",
+      "summary": "A local king holds the end of this path.",
+      "reward": "run_complete",
+      "score_event": "boss_kill"
+    }
+  },
+  "floors": [
+    { "floor": 1, "slots": ["combat", "elite"] },
+    { "floor": 2, "slots": ["combat", "relic", "rest"] },
+    { "floor": 3, "slots": ["combat", "elite", "story"] },
+    { "floor": 4, "slots": ["combat", "elite", "relic"] },
+    { "floor": 5, "slots": ["combat", "ambush", "rest"] },
+    { "floor": 6, "slots": ["elite", "story"] },
+    { "floor": 7, "slots": ["boss"] }
+  ],
+  "encounter_rules": {
+    "combat": [
+      { "min_floor": 1, "enemy_types": ["pawn"], "spawn_min": 1, "spawn_max": 2 },
+      { "min_floor": 3, "enemy_types": ["pawn", "knight"], "spawn_min": 2, "spawn_max": 3 },
+      { "min_floor": 5, "enemy_types": ["knight", "bishop"], "spawn_min": 3, "spawn_max": 4 }
+    ],
+    "elite": [
+      { "min_floor": 1, "enemy_types": ["knight"], "spawn_min": 1, "spawn_max": 1, "elite_items": 1 },
+      { "min_floor": 4, "enemy_types": ["bishop", "rook"], "spawn_min": 1, "spawn_max": 2, "elite_items": 1 }
+    ],
+    "ambush": [
+      { "min_floor": 1, "enemy_types": ["pawn", "knight"], "spawn_min": 3, "spawn_max": 4 },
+      { "min_floor": 5, "enemy_types": ["knight", "bishop", "rook"], "spawn_min": 4, "spawn_max": 5 }
+    ],
+    "boss": [
+      { "min_floor": 1, "enemy_types": ["king"], "spawn_min": 1, "spawn_max": 1, "is_boss": true }
+    ]
+  },
+  "story_lines": [
+    "A pawn watches your hands and looks away.",
+    "The Plain marks a square, then forgets why.",
+    "A bishop says the myths agree only on the pain.",
+    "Something beneath the board counts the turns you did not take."
+  ]
+}

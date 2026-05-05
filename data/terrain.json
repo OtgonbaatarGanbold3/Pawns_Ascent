@@ -40,5 +40,21 @@
     "standing_effect": { "type": "", "amount": 0 },
     "combat_mod": { "atk_bonus": 0, "damage_reduce": 0 },
     "fog": true
+  },
+  "rock": {
+    "base_weight": 4,
+    "entry_effect": { "type": "", "amount": 0 },
+    "standing_effect": { "type": "", "amount": 0 },
+    "combat_mod": { "atk_bonus": 0, "damage_reduce": 0 },
+    "fog": false,
+    "blocks_movement": true
+  },
+  "house": {
+    "base_weight": 2,
+    "entry_effect": { "type": "", "amount": 0 },
+    "standing_effect": { "type": "", "amount": 0 },
+    "combat_mod": { "atk_bonus": 0, "damage_reduce": 1 },
+    "fog": false,
+    "blocks_movement": true
   }
 }
