@@ -40,6 +40,13 @@ static func calculate_priority(unit: Unit) -> Dictionary:
         priority["defend"] += int(boss_mod.get("defend", 0))
         priority["flee"] += int(boss_mod.get("flee", 0))
 
+    if not unit.role_id.is_empty():
+        var roles: Dictionary = DataLoader.load_config("enemy_roles")
+        var role: Dictionary = roles.get(unit.role_id, {})
+        var role_priority: Dictionary = role.get("priority", {})
+        for mode in priority.keys():
+            priority[mode] += int(role_priority.get(mode, 0))
+
     return priority
 
 static func choose_behavior(priority: Dictionary) -> String:
@@ -53,11 +60,11 @@ static func choose_behavior(priority: Dictionary) -> String:
     return best
 
 static func decide_action(unit: Unit, board: BoardData, player: Unit) -> Dictionary:
-    var adjacent := MovementSystem.is_adjacent(unit.position, player.position)
+    var can_attack := MovementSystem.can_attack(unit, player, board)
     var priority := calculate_priority(unit)
     var mode := choose_behavior(priority)
 
-    if adjacent and mode != "flee":
+    if can_attack and mode != "flee":
         return {"type": "attack", "target": player.position}
 
     var moves := MovementSystem.get_valid_moves(unit, board)
@@ -72,10 +79,26 @@ static func decide_action(unit: Unit, board: BoardData, player: Unit) -> Diction
         _:
             return {"type": "move", "target": _choose_move_toward(moves, player.position)}
 
+static func decide_movement_target(unit: Unit, board: BoardData, focus: Vector2i) -> Vector2i:
+    if unit == null or board == null:
+        return Vector2i(-1, -1)
+    var moves := MovementSystem.get_valid_moves(unit, board)
+    if moves.is_empty():
+        return unit.position
+    var priority := calculate_priority(unit)
+    var mode := choose_behavior(priority)
+    match mode:
+        "flee":
+            return _choose_move_away(moves, focus)
+        "defend":
+            return _choose_defensive_tile(moves, board)
+        _:
+            return _choose_move_toward(moves, focus)
+
 static func describe_intent(unit: Unit, board: BoardData, player: Unit) -> String:
     if unit == null or player == null:
         return "Waiting."
-    if MovementSystem.is_adjacent(unit.position, player.position):
+    if board != null and MovementSystem.can_attack(unit, player, board):
         return "Strike the Unranked."
     var priority := calculate_priority(unit)
     var mode := choose_behavior(priority)

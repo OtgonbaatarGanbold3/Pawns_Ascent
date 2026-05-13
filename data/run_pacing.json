@@ -1,0 +1,63 @@
+{
+  "floors": {
+    "1": {
+      "intensity": "duel",
+      "preview": "First contact. One piece, clean pressure.",
+      "template_tags": ["duel"],
+      "enemy_count_bonus": 0,
+      "terrain_mark_bonus": 0
+    },
+    "2": {
+      "intensity": "pressure",
+      "preview": "A second body enters the law.",
+      "template_tags": ["duel", "pincer", "terrain_intro"],
+      "enemy_count_bonus": 0,
+      "terrain_mark_bonus": 0
+    },
+    "3": {
+      "intensity": "choice",
+      "preview": "Build direction begins to matter.",
+      "template_tags": ["pincer", "terrain_intro", "role_mix"],
+      "enemy_count_bonus": 0,
+      "terrain_mark_bonus": 1
+    },
+    "4": {
+      "intensity": "terrain",
+      "preview": "The board itself starts arguing.",
+      "template_tags": ["terrain_puzzle", "role_mix"],
+      "enemy_count_bonus": 0,
+      "terrain_mark_bonus": 1
+    },
+    "5": {
+      "intensity": "spike",
+      "preview": "Ambush and elite pressure become likely.",
+      "template_tags": ["ambush", "elite_check", "terrain_puzzle"],
+      "enemy_count_bonus": 1,
+      "terrain_mark_bonus": 1
+    },
+    "6": {
+      "intensity": "reckoning",
+      "preview": "The run checks whether your build has teeth.",
+      "template_tags": ["elite_check", "role_mix", "terrain_puzzle"],
+      "enemy_count_bonus": 1,
+      "terrain_mark_bonus": 2
+    },
+    "7": {
+      "intensity": "boss",
+      "preview": "A local king holds the end of this path.",
+      "template_tags": ["boss"],
+      "enemy_count_bonus": 0,
+      "terrain_mark_bonus": 2
+    }
+  },
+  "node_risk": {
+    "combat": "Measured",
+    "elite": "Severe",
+    "ambush": "Immediate",
+    "boss": "Crowned",
+    "relic": "Tempting",
+    "rest": "Quiet",
+    "story": "Uncertain",
+    "shrine": "Binding"
+  }
+}

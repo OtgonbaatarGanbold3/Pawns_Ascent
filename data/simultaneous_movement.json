@@ -1,0 +1,8 @@
+{
+  "enabled": true,
+  "enemy_moves_on_player_move": true,
+  "enemy_attack_after_shared_move": true,
+  "player_wins_target_contests": true,
+  "fastest_enemy_wins_contests": true,
+  "log_enemy_plans": true
+}

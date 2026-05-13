@@ -1,0 +1,47 @@
+{
+  "objective_chance": {
+    "combat": 1.0,
+    "elite": 1.0,
+    "ambush": 1.0,
+    "boss": 0.0
+  },
+  "types": {
+    "cache": {
+      "display_name": "Relic Cache",
+      "summary": "A sealed cache waits off the safest line. Step on it before the board is cleared.",
+      "marker": "$",
+      "min_floor": 1,
+      "weight": 8,
+      "clear_on_complete": false,
+      "placement": "far_from_player",
+      "reward_gold": [8, 14],
+      "score_events": ["relic_node"],
+      "log": "The cache opens. Something small and useful falls out."
+    },
+    "seal": {
+      "display_name": "Seal",
+      "summary": "Hold the marked square through the enemy answer to break the encounter.",
+      "marker": "O",
+      "min_floor": 2,
+      "weight": 5,
+      "clear_on_complete": true,
+      "placement": "center",
+      "hold_turns": 1,
+      "reward_gold": [3, 6],
+      "score_events": [],
+      "log": "The seal shuts. The remaining law loses its claim."
+    },
+    "escape": {
+      "display_name": "Exit",
+      "summary": "Reach the exit. Survival is enough here.",
+      "marker": ">",
+      "min_floor": 3,
+      "weight": 4,
+      "clear_on_complete": true,
+      "placement": "far_from_player",
+      "reward_gold": [0, 4],
+      "score_events": [],
+      "log": "You leave before the board can finish its sentence."
+    }
+  }
+}

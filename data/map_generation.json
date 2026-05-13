@@ -1,0 +1,42 @@
+{
+  "default_floor": 1,
+  "spawn_clear_radius": 1,
+  "blocked_terrain": ["rock", "house"],
+  "hazard_terrain": ["cursed", "fire", "fog"],
+  "boon_terrain": ["elevated", "blessed"],
+  "floor_bands": [
+    {
+      "min_floor": 1,
+      "max_floor": 2,
+      "rows": 8,
+      "cols": 9,
+      "blockers": [4, 6],
+      "hazards": [3, 5],
+      "boons": [2, 3],
+      "footprints": ["rectangle", "notched", "l_shape", "offset_chambers"],
+      "layouts": ["broken_lane", "pillars", "two_rooms"]
+    },
+    {
+      "min_floor": 3,
+      "max_floor": 5,
+      "rows": 9,
+      "cols": 10,
+      "blockers": [7, 10],
+      "hazards": [6, 9],
+      "boons": [2, 4],
+      "footprints": ["notched", "l_shape", "cross", "offset_chambers", "split_corners"],
+      "layouts": ["broken_lane", "pillars", "two_rooms", "ruins"]
+    },
+    {
+      "min_floor": 6,
+      "max_floor": 99,
+      "rows": 10,
+      "cols": 12,
+      "blockers": [10, 15],
+      "hazards": [9, 14],
+      "boons": [3, 5],
+      "footprints": ["l_shape", "cross", "offset_chambers", "split_corners", "ragged"],
+      "layouts": ["broken_lane", "two_rooms", "ruins", "choke"]
+    }
+  ]
+}

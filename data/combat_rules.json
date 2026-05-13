@@ -2,6 +2,7 @@
   "damage_random_min": -1,
   "damage_random_max": 2,
   "min_damage": 1,
+  "attack_range": 2,
   "elevated_atk_bonus": 1,
   "blessed_damage_reduce": 1
 }

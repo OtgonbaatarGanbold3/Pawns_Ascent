@@ -17,6 +17,9 @@ func reset_run() -> void:
 	        "active_node_id": "",
 	        "path_graph": {},
 	        "gold": 0,
+	        "perks": [],
+	        "active_consequences": [],
+	        "pending_board_mutations": 0,
 	        "phase": "player",
         "turn": 1,
         "log": []

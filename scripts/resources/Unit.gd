@@ -8,11 +8,16 @@ var position: Vector2i = Vector2i.ZERO
 var is_player: bool = false
 var is_ally: bool = false
 var is_boss: bool = false
+var role_id: String = ""
+var role_name: String = ""
 
 var items: Array = []
 var status_effects: Dictionary = {}
 var active_synergies: Array = []
 var synergy_effects: Dictionary = {}
+var trigger_flags: Dictionary = {}
+var run_stat_bonuses: Dictionary = {}
+var trigger_stat_bonuses: Dictionary = {}
 var kills: int = 0
 
 var base_hp: int = 0
@@ -86,6 +91,18 @@ func _rebuild_derived_stats() -> void:
 		def_bonus += int(stats.get("def", 0))
 		spd_bonus += int(stats.get("spd", 0))
 		ap_bonus += int(stats.get("ap", 0))
+
+	hp_bonus += int(run_stat_bonuses.get("hp", 0))
+	atk_bonus += int(run_stat_bonuses.get("atk", 0))
+	def_bonus += int(run_stat_bonuses.get("def", 0))
+	spd_bonus += int(run_stat_bonuses.get("spd", 0))
+	ap_bonus += int(run_stat_bonuses.get("ap", 0))
+
+	hp_bonus += int(trigger_stat_bonuses.get("hp", 0))
+	atk_bonus += int(trigger_stat_bonuses.get("atk", 0))
+	def_bonus += int(trigger_stat_bonuses.get("def", 0))
+	spd_bonus += int(trigger_stat_bonuses.get("spd", 0))
+	ap_bonus += int(trigger_stat_bonuses.get("ap", 0))
 
 	var school_counts: Dictionary = {}
 	for item in items:

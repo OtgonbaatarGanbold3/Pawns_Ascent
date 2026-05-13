@@ -58,24 +58,38 @@ static func apply_attack(attacker: Unit, defender: Unit, board: BoardData, rng: 
     _event_bus().emit_event(_event_bus().EVENT_ATTACK_HIT, {
         "attacker": attacker,
         "defender": defender,
+        "board": board,
         "result": result
     })
+    _apply_defensive_statuses(defender, result)
 
     var killed: bool = defender.apply_damage(int(result.get("final", 0)))
     _event_bus().emit_event(_event_bus().EVENT_UNIT_DAMAGED, {
         "attacker": attacker,
         "defender": defender,
+        "board": board,
         "result": result
     })
 
     if killed:
         _event_bus().emit_event(_event_bus().EVENT_UNIT_KILLED, {
             "killer": attacker,
-            "victim": defender
+            "victim": defender,
+            "board": board
         })
 
     result["killed"] = killed
     return result
+
+static func _apply_defensive_statuses(defender: Unit, result: Dictionary) -> void:
+    var shielded: Dictionary = defender.status_effects.get("shielded", {})
+    var reduce: int = int(shielded.get("damage_reduce", 0))
+    if reduce <= 0:
+        return
+    var min_damage: int = int(DataLoader.load_config("combat_rules").get("min_damage", 1))
+    result["status_reduce"] = int(result.get("status_reduce", 0)) + reduce
+    result["final"] = max(min_damage, int(result.get("final", 0)) - reduce)
+    defender.status_effects.erase("shielded")
 
 static func _event_bus() -> Node:
     return Engine.get_main_loop().root.get_node("EventBus")

@@ -79,15 +79,31 @@ func _rebuild_nodes() -> void:
         nodes_row.add_child(button)
 
 func _format_node(node: Dictionary) -> String:
-    return "%s\n%s\n\nFloor %d\n%s" % [
+    var preview: Dictionary = node.get("preview", {})
+    var lines: Array = [
         str(node.get("icon", "Node")),
         str(node.get("label", "Node")),
-        int(node.get("floor", 1)),
-        str(node.get("summary", ""))
     ]
+    lines.append("")
+    lines.append("Floor %d  Risk: %s" % [int(node.get("floor", 1)), str(preview.get("risk", "?"))])
+    var pattern: String = str(preview.get("pattern", ""))
+    if not pattern.is_empty():
+        lines.append("%s (%d)" % [pattern, int(preview.get("enemy_count", 0))])
+    lines.append(str(preview.get("reward", node.get("summary", ""))))
+    return _join_strings(lines, "\n")
 
 func _show_node_detail(node: Dictionary) -> void:
-    detail_label.text = "%s: %s" % [str(node.get("label", "Node")), str(node.get("summary", ""))]
+    var preview: Dictionary = node.get("preview", {})
+    var lines: Array = [
+        "%s: %s" % [str(node.get("label", "Node")), str(node.get("summary", ""))],
+        "Risk: %s  Pace: %s" % [str(preview.get("risk", "?")), str(preview.get("intensity", "?"))],
+        str(preview.get("summary", "")),
+        "Reward: %s" % str(preview.get("reward", "?"))
+    ]
+    var pattern: String = str(preview.get("pattern", ""))
+    if not pattern.is_empty():
+        lines.append("Likely pattern: %s, %d enemies" % [pattern, int(preview.get("enemy_count", 0))])
+    detail_label.text = _join_strings(lines, "\n")
 
 func _on_node_pressed(node_id: String) -> void:
     emit_signal("node_selected", node_id)
@@ -117,3 +133,11 @@ func _style_node_button(button: Button, node_type: String) -> void:
     hover.bg_color = fill.lightened(0.08)
     hover.border_color = border.lightened(0.2)
     button.add_theme_stylebox_override("hover", hover)
+
+func _join_strings(values: Array, separator: String) -> String:
+    var text := ""
+    for i in range(values.size()):
+        if i > 0:
+            text += separator
+        text += str(values[i])
+    return text

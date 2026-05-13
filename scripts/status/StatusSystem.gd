@@ -13,7 +13,8 @@ static func apply_status(unit: Unit, status_id: String) -> void:
         return
     unit.status_effects[status_id] = {
         "remaining": duration,
-        "damage_per_tick": damage
+        "damage_per_tick": damage,
+        "damage_reduce": int(entry.get("damage_reduce", 0))
     }
 
 static func tick_all(units: Array) -> void:

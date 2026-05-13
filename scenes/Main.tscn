@@ -107,7 +107,7 @@ text = "Yield the Move"
 
 [node name="HintLabel" type="Label" parent="BottomBar/BarRow/RightColumn" unique_id=160107535]
 layout_mode = 2
-text = "Select the Unranked, then choose a blue tile to move or a red tile to strike."
+text = "Click a blue tile to move or a red tile to strike. Hover any highlighted tile to preview it."
 
 [node name="ItemDraftOverlay" parent="." unique_id=1186685689 instance=ExtResource("5")]
 anchors_preset = 0

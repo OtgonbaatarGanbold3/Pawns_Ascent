@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://bhr517irl7cg8"]
+
+[ext_resource type="Script" path="res://scripts/tests/SimultaneousMovementTest.gd" id="1_nmvx8"]
+
+[node name="SimultaneousMovementTest" type="Node" unique_id=2001130216]
+script = ExtResource("1_nmvx8")

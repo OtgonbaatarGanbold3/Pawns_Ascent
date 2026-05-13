@@ -39,6 +39,12 @@
       "summary": "A piece speaks before the law closes its hand.",
       "reward": "story"
     },
+    "shrine": {
+      "label": "Shrine",
+      "icon": "Rune",
+      "summary": "A rule lies exposed. It may be worn.",
+      "reward": "perk"
+    },
     "ambush": {
       "label": "Ambush",
       "icon": "!",
@@ -57,7 +63,7 @@
   "floors": [
     { "floor": 1, "slots": ["combat", "elite"] },
     { "floor": 2, "slots": ["combat", "relic", "rest"] },
-    { "floor": 3, "slots": ["combat", "elite", "story"] },
+    { "floor": 3, "slots": ["combat", "elite", "story", "shrine"] },
     { "floor": 4, "slots": ["combat", "elite", "relic"] },
     { "floor": 5, "slots": ["combat", "ambush", "rest"] },
     { "floor": 6, "slots": ["elite", "story"] },

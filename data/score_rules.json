@@ -2,7 +2,20 @@
   "enemy_kill": 100,
   "boss_kill": 500,
   "encounter_clear": 50,
+  "floor_clear": 50,
   "item_pickup": 75,
+  "relic_node": 60,
+  "story_visit": 60,
+  "perk_acquired": 100,
+  "rest_used": 20,
+  "rest_scavenged": 45,
+  "elite_clear": 200,
+  "ambush_survived": 160,
   "evolution": 250,
-  "win_bonus": 2000
+  "win_bonus": 2000,
+  "multipliers": {
+    "death_floor_base": 1.0,
+    "death_floor_step": 0.05,
+    "death_floor_cap": 1.8
+  }
 }

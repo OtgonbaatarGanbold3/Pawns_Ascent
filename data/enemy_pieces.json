@@ -1,0 +1,50 @@
+{
+  "pawn": {
+    "display_name": "Pawn",
+    "base_stats": { "hp": 14, "atk": 3, "def": 0, "spd": 2, "ap": 3 },
+    "move_type": "omni",
+    "move_range": 2,
+    "evolve_kills": 0,
+    "next_form": ""
+  },
+  "knight": {
+    "display_name": "Knight",
+    "base_stats": { "hp": 18, "atk": 4, "def": 1, "spd": 3, "ap": 3 },
+    "move_type": "omni",
+    "move_range": 3,
+    "evolve_kills": 0,
+    "next_form": ""
+  },
+  "bishop": {
+    "display_name": "Bishop",
+    "base_stats": { "hp": 16, "atk": 3, "def": 1, "spd": 3, "ap": 3 },
+    "move_type": "omni",
+    "move_range": 3,
+    "evolve_kills": 0,
+    "next_form": ""
+  },
+  "rook": {
+    "display_name": "Rook",
+    "base_stats": { "hp": 24, "atk": 5, "def": 2, "spd": 1, "ap": 2 },
+    "move_type": "omni",
+    "move_range": 1,
+    "evolve_kills": 0,
+    "next_form": ""
+  },
+  "queen": {
+    "display_name": "Queen",
+    "base_stats": { "hp": 30, "atk": 6, "def": 2, "spd": 4, "ap": 4 },
+    "move_type": "omni",
+    "move_range": 4,
+    "evolve_kills": 0,
+    "next_form": ""
+  },
+  "king": {
+    "display_name": "King",
+    "base_stats": { "hp": 42, "atk": 6, "def": 4, "spd": 2, "ap": 3 },
+    "move_type": "omni",
+    "move_range": 2,
+    "evolve_kills": 0,
+    "next_form": ""
+  }
+}

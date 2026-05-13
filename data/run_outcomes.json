@@ -1,0 +1,166 @@
+{
+  "draft_rewards": {
+    "draft": { "draft_size_bonus": 0 },
+    "elite_draft": { "draft_size_bonus": 1 },
+    "relic": { "draft_size_bonus": 1 },
+    "story_draft": { "draft_size_bonus": 0 }
+  },
+  "node_rewards": {
+    "combat": {
+      "draft_reward_type": "draft",
+      "effects": {
+        "gold_range": [6, 12],
+        "score_events": ["encounter_clear", "floor_clear"]
+      }
+    },
+    "elite": {
+      "draft_reward_type": "elite_draft",
+      "effects": {
+        "gold_range": [18, 30],
+        "score_events": ["encounter_clear", "elite_clear", "floor_clear"]
+      }
+    },
+    "ambush": {
+      "draft_reward_type": "draft",
+      "effects": {
+        "gold_range": [24, 38],
+        "score_events": ["encounter_clear", "ambush_survived", "floor_clear"]
+      }
+    },
+    "boss": {
+      "draft_reward_type": "run_complete",
+      "effects": {
+        "gold_range": [45, 70],
+        "score_events": ["floor_clear", "win_bonus"]
+      }
+    },
+    "relic": {
+      "draft_reward_type": "relic",
+      "effects": {
+        "score_events": ["relic_node"]
+      }
+    }
+  },
+  "rest_options": [
+    {
+      "label": "Kneel",
+      "summary": "Let the still square close what it can.",
+      "effects": {
+        "heal_percent": 0.3,
+        "score_events": ["rest_used"],
+        "log": "The square warms, then denies it."
+      }
+    },
+    {
+      "label": "Search the Ash",
+      "summary": "Take what another piece failed to carry.",
+      "effects": {
+        "gold_range": [10, 18],
+        "score_events": ["rest_scavenged"],
+        "pending_board_mutations": 1,
+        "consequence": {
+          "id": "ash_remembers",
+          "label": "Ash Remembers",
+          "duration": 1,
+          "enemy_count_bonus": 1,
+          "terrain_marks": [{ "terrain": "cursed", "quadrant": "center", "count": 2 }],
+          "log": "The next board will answer the theft."
+        },
+        "log": "The ash gives. The next board notices."
+      }
+    }
+  ],
+  "story_events": [
+    {
+      "title": "A Pawn Without a File",
+      "line": "A pawn studies your shadow. It does not match your feet.",
+      "choices": [
+        {
+          "label": "Ask Nothing",
+          "summary": "Silence is the only answer the law does not own.",
+          "effects": {
+            "score_events": ["story_visit"],
+            "gold_range": [4, 8],
+            "log": "The pawn leaves a coin where its name should be."
+          }
+        },
+        {
+          "label": "Step Closer",
+          "summary": "A little blood buys a clearer road.",
+          "effects": {
+            "score_events": ["story_visit"],
+            "hp_delta": -2,
+            "draft_reward_type": "story_draft",
+            "consequence": {
+              "id": "clearer_road",
+              "label": "Clearer Road",
+              "duration": 1,
+              "force_enemy_role": "pursuer",
+              "terrain_marks": [{ "terrain": "elevated", "quadrant": "bottom_left", "count": 1 }],
+              "log": "The next road is clearer, but it sees you."
+            },
+            "log": "The pawn flinches. Something old falls from its sleeve."
+          }
+        }
+      ]
+    },
+    {
+      "title": "The Marked Square",
+      "line": "The Plain marks one square, then another, as if correcting itself.",
+      "choices": [
+        {
+          "label": "Stand Still",
+          "summary": "Let the correction pass through you.",
+          "effects": {
+            "score_events": ["story_visit"],
+            "heal_percent": 0.15,
+            "log": "For one breath, the law cannot find you."
+          }
+        },
+        {
+          "label": "Mark Back",
+          "summary": "Leave a small refusal behind.",
+          "effects": {
+            "score_events": ["story_visit"],
+            "pending_board_mutations": 2,
+            "gold_range": [12, 20],
+            "consequence": {
+              "id": "marked_back",
+              "label": "Marked Back",
+              "duration": 2,
+              "terrain_marks": [{ "terrain": "cursed", "quadrant": "center", "count": 2 }],
+              "enemy_count_bonus": 1,
+              "log": "The mark walks ahead of you."
+            },
+            "log": "The board keeps the mark. It will spend it later."
+          }
+        }
+      ]
+    },
+    {
+      "title": "A Bishop's Agreement",
+      "line": "A bishop says the myths agree only on the pain.",
+      "choices": [
+        {
+          "label": "Take the Myth",
+          "summary": "A contradiction with an edge.",
+          "effects": {
+            "score_events": ["story_visit"],
+            "draft_reward_type": "story_draft",
+            "log": "The bishop smiles like a wound learning grammar."
+          }
+        },
+        {
+          "label": "Take the Pain",
+          "summary": "Immediate, honest, and useful.",
+          "effects": {
+            "score_events": ["story_visit"],
+            "hp_delta": -3,
+            "gold_range": [18, 28],
+            "log": "Pain pays quickly here."
+          }
+        }
+      ]
+    }
+  ]
+}

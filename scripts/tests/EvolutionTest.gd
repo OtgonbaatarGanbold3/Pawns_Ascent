@@ -1,7 +1,7 @@
 extends Node
 
 func _ready() -> void:
-    var pieces: Dictionary = DataLoader.load_config("pieces")
+    var pieces: Dictionary = DataLoader.load_config("player_pieces")
     var unit := Unit.new()
     unit.init_from_piece("pawn", pieces.get("pawn", {}))
     unit.kills = unit.evolve_kills

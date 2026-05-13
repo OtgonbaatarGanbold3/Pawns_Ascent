@@ -6,21 +6,21 @@ enum Phase { PLAYER, ALLY, ENEMY, TICK }
 
 var phase: Phase = Phase.PLAYER
 
-func start_player_phase(player: Unit) -> void:
+func start_player_phase(player: Unit, board: BoardData = null) -> void:
     phase = Phase.PLAYER
     player.ap = player.max_ap
-    _event_bus().emit_event(_event_bus().EVENT_TURN_START, {"unit": player})
+    _event_bus().emit_event(_event_bus().EVENT_TURN_START, {"unit": player, "board": board})
 
 func start_ally_phase() -> void:
     phase = Phase.ALLY
 
-func start_enemy_phase(enemies: Array) -> Array:
+func start_enemy_phase(enemies: Array, board: BoardData = null) -> Array:
     phase = Phase.ENEMY
     var sorted := enemies.duplicate()
     sorted.sort_custom(func(a, b): return a.spd > b.spd)
     for enemy in sorted:
         enemy.ap = enemy.max_ap
-        _event_bus().emit_event(_event_bus().EVENT_TURN_START, {"unit": enemy})
+        _event_bus().emit_event(_event_bus().EVENT_TURN_START, {"unit": enemy, "board": board})
     return sorted
 
 func start_tick_phase(units: Array, board: BoardData) -> void:

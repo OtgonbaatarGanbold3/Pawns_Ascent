@@ -4,6 +4,10 @@ class_name DataLoader
 static var _cache: Dictionary = {}
 static var _paths := {
     "pieces": "res://data/pieces.json",
+    "player_pieces": "res://data/player_pieces.json",
+    "enemy_pieces": "res://data/enemy_pieces.json",
+    "map_generation": "res://data/map_generation.json",
+    "encounter_objectives": "res://data/encounter_objectives.json",
     "items": "res://data/items.json",
     "terrain": "res://data/terrain.json",
     "ai_weights": "res://data/ai_weights.json",
@@ -15,6 +19,13 @@ static var _paths := {
     "action_costs": "res://data/action_costs.json",
     "synergies": "res://data/synergies.json",
     "run_nodes": "res://data/run_nodes.json",
+    "run_outcomes": "res://data/run_outcomes.json",
+    "perks": "res://data/perks.json",
+    "encounter_templates": "res://data/encounter_templates.json",
+    "enemy_roles": "res://data/enemy_roles.json",
+    "run_pacing": "res://data/run_pacing.json",
+    "item_pools": "res://data/item_pools.json",
+    "simultaneous_movement": "res://data/simultaneous_movement.json",
 }
 
 static func load_config(config_name: String) -> Variant:

@@ -1,0 +1,226 @@
+{
+  "templates": [
+    {
+      "id": "first_contact",
+      "label": "First Contact",
+      "summary": "One pawn crosses the file to test whether you can answer.",
+      "node_types": ["combat"],
+      "min_floor": 1,
+      "max_floor": 1,
+      "tags": ["duel"],
+      "weight": 20,
+      "enemies": [
+        { "piece": "pawn", "role": "pursuer", "quadrant": "top_right" }
+      ],
+      "terrain_marks": [
+        { "terrain": "elevated", "quadrant": "center", "count": 1 }
+      ]
+    },
+    {
+      "id": "first_elite",
+      "label": "Ranked Warning",
+      "summary": "A single stronger piece arrives before you have a build.",
+      "node_types": ["elite"],
+      "min_floor": 1,
+      "max_floor": 2,
+      "tags": ["duel", "elite_check"],
+      "weight": 12,
+      "enemies": [
+        { "piece": "knight", "role": "pursuer", "quadrant": "top_right", "items": ["shard_of_rank"] }
+      ],
+      "terrain_marks": [
+        { "terrain": "elevated", "quadrant": "top_right", "count": 1 },
+        { "terrain": "rock", "quadrant": "center", "count": 1 }
+      ]
+    },
+    {
+      "id": "single_coward",
+      "label": "Loose Pawn",
+      "summary": "A weak piece tries to live longer than it should.",
+      "node_types": ["combat"],
+      "min_floor": 2,
+      "tags": ["duel"],
+      "weight": 5,
+      "enemies": [
+        { "piece": "pawn", "role": "coward", "quadrant": "top_right" }
+      ],
+      "terrain_marks": [
+        { "terrain": "fog", "quadrant": "center", "count": 1 }
+      ]
+    },
+    {
+      "id": "plain_pincer",
+      "label": "Plain Pincer",
+      "summary": "Two lesser pieces try to close the file from both sides.",
+      "node_types": ["combat"],
+      "min_floor": 2,
+      "tags": ["pincer"],
+      "weight": 8,
+      "enemies": [
+        { "piece": "pawn", "role": "pursuer", "quadrant": "top_right" },
+        { "piece": "pawn", "role": "keeper", "quadrant": "top_right" }
+      ],
+      "terrain_marks": [
+        { "terrain": "elevated", "quadrant": "center", "count": 1 }
+      ]
+    },
+    {
+      "id": "raised_claim",
+      "label": "Raised Claim",
+      "summary": "A keeper waits near better ground while another piece advances.",
+      "node_types": ["combat"],
+      "min_floor": 3,
+      "tags": ["terrain_intro", "role_mix"],
+      "weight": 7,
+      "enemies": [
+        { "piece": "pawn", "role": "keeper", "quadrant": "top_right" },
+        { "piece": "pawn", "role": "pursuer", "quadrant": "top_right" }
+      ],
+      "terrain_marks": [
+        { "terrain": "elevated", "quadrant": "top_right", "count": 2 },
+        { "terrain": "cursed", "quadrant": "center", "count": 1 }
+      ]
+    },
+    {
+      "id": "broken_file",
+      "label": "Broken File",
+      "summary": "Blockers split the board and make approach matter.",
+      "node_types": ["combat", "elite"],
+      "min_floor": 2,
+      "tags": ["terrain_intro", "role_mix"],
+      "weight": 6,
+      "enemies": [
+        { "piece": "pawn", "role": "warden", "quadrant": "top_right" },
+        { "piece": "knight", "role": "pursuer", "quadrant": "top_right" }
+      ],
+      "terrain_marks": [
+        { "terrain": "rock", "quadrant": "center", "count": 3 },
+        { "terrain": "blessed", "quadrant": "top_right", "count": 1 }
+      ]
+    },
+    {
+      "id": "fog_ward",
+      "label": "Fog Ward",
+      "summary": "The approach is visible only after it is already dangerous.",
+      "node_types": ["combat", "elite"],
+      "min_floor": 3,
+      "tags": ["terrain_puzzle", "role_mix"],
+      "weight": 6,
+      "enemies": [
+        { "piece": "pawn", "role": "warden", "quadrant": "top_right" },
+        { "piece": "bishop", "role": "keeper", "quadrant": "top_right" }
+      ],
+      "terrain_marks": [
+        { "terrain": "fog", "quadrant": "center", "count": 4 },
+        { "terrain": "blessed", "quadrant": "top_right", "count": 1 }
+      ]
+    },
+    {
+      "id": "crowned_checkpoint",
+      "label": "Crowned Checkpoint",
+      "summary": "A protected piece waits behind obedient bodies.",
+      "node_types": ["elite"],
+      "min_floor": 3,
+      "tags": ["elite_check", "role_mix"],
+      "weight": 7,
+      "enemies": [
+        { "piece": "bishop", "role": "keeper", "quadrant": "top_right", "items": ["ward_rune"] },
+        { "piece": "pawn", "role": "warden", "quadrant": "top_right" },
+        { "piece": "pawn", "role": "warden", "quadrant": "top_right" }
+      ],
+      "terrain_marks": [
+        { "terrain": "elevated", "quadrant": "top_right", "count": 1 },
+        { "terrain": "house", "quadrant": "center", "count": 2 }
+      ]
+    },
+    {
+      "id": "iron_screen",
+      "label": "Iron Screen",
+      "summary": "A slow wall makes room for a harder piece.",
+      "node_types": ["elite"],
+      "min_floor": 4,
+      "tags": ["elite_check", "terrain_puzzle"],
+      "weight": 6,
+      "enemies": [
+        { "piece": "rook", "role": "warden", "quadrant": "top_right", "items": ["grave_weight"] },
+        { "piece": "pawn", "role": "pursuer", "quadrant": "top_right" }
+      ],
+      "terrain_marks": [
+        { "terrain": "rock", "quadrant": "center", "count": 4 },
+        { "terrain": "elevated", "quadrant": "top_right", "count": 1 }
+      ]
+    },
+    {
+      "id": "ash_ambush",
+      "label": "Ash Ambush",
+      "summary": "The board begins too close and already burning.",
+      "node_types": ["ambush"],
+      "min_floor": 1,
+      "tags": ["ambush"],
+      "weight": 10,
+      "enemies": [
+        { "piece": "pawn", "role": "zealot", "quadrant": "center" },
+        { "piece": "knight", "role": "pursuer", "quadrant": "center" },
+        { "piece": "pawn", "role": "coward", "quadrant": "top_right" }
+      ],
+      "terrain_marks": [
+        { "terrain": "fire", "quadrant": "center", "count": 3 },
+        { "terrain": "cursed", "quadrant": "bottom_left", "count": 1 }
+      ]
+    },
+    {
+      "id": "knife_close",
+      "label": "Knife Close",
+      "summary": "The ambush starts where planning usually ends.",
+      "node_types": ["ambush"],
+      "min_floor": 5,
+      "tags": ["ambush", "elite_check"],
+      "weight": 7,
+      "enemies": [
+        { "piece": "knight", "role": "zealot", "quadrant": "center", "items": ["bleeders_mark"] },
+        { "piece": "pawn", "role": "pursuer", "quadrant": "center" },
+        { "piece": "pawn", "role": "warden", "quadrant": "top_right" }
+      ],
+      "terrain_marks": [
+        { "terrain": "cursed", "quadrant": "bottom_left", "count": 2 },
+        { "terrain": "fire", "quadrant": "center", "count": 2 }
+      ]
+    },
+    {
+      "id": "bishop_net",
+      "label": "Bishop Net",
+      "summary": "Two patient pieces make the center expensive.",
+      "node_types": ["combat", "elite"],
+      "min_floor": 5,
+      "tags": ["role_mix", "terrain_puzzle"],
+      "weight": 5,
+      "enemies": [
+        { "piece": "bishop", "role": "keeper", "quadrant": "top_right" },
+        { "piece": "bishop", "role": "coward", "quadrant": "top_right" },
+        { "piece": "pawn", "role": "warden", "quadrant": "top_right" }
+      ],
+      "terrain_marks": [
+        { "terrain": "fog", "quadrant": "center", "count": 3 },
+        { "terrain": "elevated", "quadrant": "center", "count": 2 }
+      ]
+    },
+    {
+      "id": "local_king",
+      "label": "Local King",
+      "summary": "The end of the path has learned to stand still.",
+      "node_types": ["boss"],
+      "min_floor": 1,
+      "tags": ["boss"],
+      "weight": 10,
+      "enemies": [
+        { "piece": "king", "role": "keeper", "quadrant": "top_right", "items": ["barricade"] },
+        { "piece": "pawn", "role": "warden", "quadrant": "top_right" },
+        { "piece": "pawn", "role": "pursuer", "quadrant": "top_right" }
+      ],
+      "terrain_marks": [
+        { "terrain": "blessed", "quadrant": "top_right", "count": 2 },
+        { "terrain": "rock", "quadrant": "center", "count": 2 }
+      ]
+    }
+  ]
+}

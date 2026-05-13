@@ -11,6 +11,8 @@ var board: BoardData = null
 var buttons: Dictionary = {}
 var move_highlights: Dictionary = {}
 var attack_highlights: Dictionary = {}
+var enemy_intent_highlights: Dictionary = {}
+var enemy_danger_highlights: Dictionary = {}
 var selected_key := ""
 var preview_key := ""
 
@@ -41,6 +43,8 @@ func build_board(new_board: BoardData) -> void:
 	buttons.clear()
 	move_highlights.clear()
 	attack_highlights.clear()
+	enemy_intent_highlights.clear()
+	enemy_danger_highlights.clear()
 	preview_key = ""
 	grid.columns = board.cols
 	grid.add_theme_constant_override("h_separation", 2)
@@ -79,8 +83,17 @@ func _repaint_tiles() -> void:
 
 			var terrain_color := _terrain_color(tile)
 			var key := _key(pos)
-			if attack_highlights.has(key):
+			if tile == null:
+				_apply_button_style(button, Color(0.025, 0.028, 0.032), Color(0.025, 0.028, 0.032))
+				button.text = ""
+				button.tooltip_text = ""
+				continue
+			if enemy_danger_highlights.has(key):
+				terrain_color = terrain_color.lerp(Color(1.0, 0.34, 0.12), 0.62)
+			elif attack_highlights.has(key):
 				terrain_color = terrain_color.lerp(Color(0.95, 0.18, 0.16), 0.58)
+			elif enemy_intent_highlights.has(key):
+				terrain_color = terrain_color.lerp(Color(1.0, 0.62, 0.14), 0.46)
 			elif move_highlights.has(key):
 				terrain_color = terrain_color.lerp(Color(0.34, 0.64, 0.92), 0.42)
 			var border_color := Color(0.09, 0.1, 0.11)
@@ -88,16 +101,16 @@ func _repaint_tiles() -> void:
 				border_color = Color(0.9, 0.82, 0.52)
 			elif key == preview_key:
 				border_color = Color(0.95, 0.95, 0.72)
+			elif enemy_danger_highlights.has(key):
+				border_color = Color(1.0, 0.42, 0.18)
 			elif attack_highlights.has(key):
 				border_color = Color(1.0, 0.38, 0.32)
+			elif enemy_intent_highlights.has(key):
+				border_color = Color(1.0, 0.7, 0.24)
 			elif move_highlights.has(key):
 				border_color = Color(0.48, 0.78, 1.0)
 			_apply_button_style(button, terrain_color, border_color)
 			button.tooltip_text = _tile_tooltip(tile)
-
-			if tile == null:
-				button.text = ""
-				continue
 
 			if tile.terrain_data.get("fog", false) and not tile.revealed:
 				button.text = "?"
@@ -106,7 +119,16 @@ func _repaint_tiles() -> void:
 
 			if tile.piece == null:
 				button.text = _terrain_marker(tile)
-				if not button.text.is_empty():
+				if not tile.objective_type.is_empty():
+					button.text = _objective_marker(tile)
+					button.add_theme_color_override("font_color", _objective_color(tile))
+				elif enemy_danger_highlights.has(key):
+					button.text = "!"
+					button.add_theme_color_override("font_color", Color(1.0, 0.76, 0.46))
+				elif enemy_intent_highlights.has(key):
+					button.text = ">"
+					button.add_theme_color_override("font_color", Color(1.0, 0.82, 0.46))
+				elif not button.text.is_empty():
 					button.add_theme_color_override("font_color", Color(0.82, 0.82, 0.78))
 			elif _moving_piece_keys.has(key):
 				button.text = ""
@@ -118,6 +140,8 @@ func _repaint_tiles() -> void:
 func show_highlights(moves: Array, attacks: Array = [], selected_pos: Vector2i = Vector2i(-999, -999)) -> void:
 	move_highlights.clear()
 	attack_highlights.clear()
+	enemy_intent_highlights.clear()
+	enemy_danger_highlights.clear()
 	selected_key = ""
 	preview_key = ""
 	for pos in moves:
@@ -126,6 +150,20 @@ func show_highlights(moves: Array, attacks: Array = [], selected_pos: Vector2i =
 		attack_highlights[_key(pos)] = true
 	if selected_pos != Vector2i(-999, -999):
 		selected_key = _key(selected_pos)
+	update_board(board)
+
+func show_enemy_intents(intent_positions: Array, danger_positions: Array = []) -> void:
+	enemy_intent_highlights.clear()
+	enemy_danger_highlights.clear()
+	for pos in intent_positions:
+		enemy_intent_highlights[_key(pos)] = true
+	for pos in danger_positions:
+		enemy_danger_highlights[_key(pos)] = true
+	update_board(board)
+
+func clear_enemy_intents() -> void:
+	enemy_intent_highlights.clear()
+	enemy_danger_highlights.clear()
 	update_board(board)
 
 func set_preview_tile(pos: Vector2i) -> void:
@@ -140,6 +178,8 @@ func set_preview_tile(pos: Vector2i) -> void:
 func clear_highlights() -> void:
 	move_highlights.clear()
 	attack_highlights.clear()
+	enemy_intent_highlights.clear()
+	enemy_danger_highlights.clear()
 	selected_key = ""
 	preview_key = ""
 	update_board(board)
@@ -271,6 +311,28 @@ func _terrain_marker(tile: Tile) -> String:
 			return "⌂"
 		_:
 			return ""
+
+func _objective_marker(tile: Tile) -> String:
+	match tile.objective_type:
+		"cache":
+			return "$"
+		"seal":
+			return "O"
+		"escape":
+			return ">"
+		_:
+			return "?"
+
+func _objective_color(tile: Tile) -> Color:
+	match tile.objective_type:
+		"cache":
+			return Color(1.0, 0.86, 0.42)
+		"seal":
+			return Color(0.72, 0.9, 1.0)
+		"escape":
+			return Color(0.7, 1.0, 0.66)
+		_:
+			return Color(0.9, 0.9, 0.9)
 
 func _terrain_color(tile: Tile) -> Color:
 	if tile == null:

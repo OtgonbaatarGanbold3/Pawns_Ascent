@@ -3,20 +3,33 @@ class_name MovementSystem
 
 static func get_valid_moves(unit: Unit, board: BoardData) -> Array[Vector2i]:
 	var moves: Array[Vector2i] = []
-	match unit.move_type:
-		"cardinal":
-			moves = _ray_moves(unit, board, [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT], unit.move_range)
-		"diagonal":
-			moves = _ray_moves(unit, board, [Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(1, 1)], unit.move_range)
-		"line":
-			moves = _ray_moves(unit, board, [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT], unit.move_range)
-		"omni":
-			moves = _ray_moves(unit, board, [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT, Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(1, 1)], unit.move_range)
-		"knight":
-			moves = _knight_moves(unit, board)
-		_:
-			moves = []
+	var move_range: int = _move_range_for(unit)
+	moves = _ray_moves(unit, board, _omni_directions(), move_range)
 	return moves
+
+static func get_attack_positions(unit: Unit, board: BoardData, attack_range: int = -1) -> Array[Vector2i]:
+	var positions: Array[Vector2i] = []
+	var max_range: int = attack_range
+	if max_range < 0:
+		max_range = int(DataLoader.load_config("combat_rules").get("attack_range", 2))
+	for direction in _omni_directions():
+		for step in range(1, max_range + 1):
+			var pos: Vector2i = unit.position + direction * step
+			if not board.is_in_bounds(pos):
+				break
+			var tile = board.get_tile(pos)
+			if tile == null or is_blocked(tile):
+				break
+			if tile.piece != null:
+				if not _is_friendly(unit, tile.piece):
+					positions.append(pos)
+				break
+	return positions
+
+static func can_attack(unit: Unit, target: Unit, board: BoardData, attack_range: int = -1) -> bool:
+	if unit == null or target == null or board == null:
+		return false
+	return target.position in get_attack_positions(unit, board, attack_range)
 
 static func get_adjacent_positions(pos: Vector2i) -> Array[Vector2i]:
 	return [pos + Vector2i.UP, pos + Vector2i.DOWN, pos + Vector2i.LEFT, pos + Vector2i.RIGHT]
@@ -53,6 +66,21 @@ static func _ray_moves(unit: Unit, board: BoardData, directions: Array, max_rang
 				break
 			moves.append(pos)
 	return moves
+
+static func _move_range_for(unit: Unit) -> int:
+	return max(1, unit.spd + int(unit.trigger_flags.get("move_range_bonus", 0)))
+
+static func _omni_directions() -> Array[Vector2i]:
+	return [
+		Vector2i.UP,
+		Vector2i.DOWN,
+		Vector2i.LEFT,
+		Vector2i.RIGHT,
+		Vector2i(-1, -1),
+		Vector2i(1, -1),
+		Vector2i(-1, 1),
+		Vector2i(1, 1)
+	]
 
 static func _knight_moves(unit: Unit, board: BoardData) -> Array[Vector2i]:
 	var moves: Array[Vector2i] = []

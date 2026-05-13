@@ -19,7 +19,8 @@
     "display_name": "Iron Chain",
     "school": "siege",
     "stats": { "hp": 5 },
-    "trigger_id": "",
+    "trigger_id": "on_hit_knockback",
+    "trigger_value": 1,
     "ai_behavior": { "mode": "aggressive", "weight": 7 },
     "flavor": "The law made physical."
   },
@@ -39,5 +40,49 @@
     "trigger_value": 3,
     "ai_behavior": { "mode": "attack", "weight": 5 },
     "flavor": "Something returns when something ends."
+  },
+  "ashen_veil": {
+    "display_name": "Ashen Veil",
+    "school": "shadow",
+    "stats": { "spd": 2 },
+    "trigger_id": "on_move_extra",
+    "trigger_value": 2,
+    "ai_behavior": { "mode": "flee", "weight": 4 },
+    "flavor": "You move before they remember to watch."
+  },
+  "rank_echo": {
+    "display_name": "Rank Echo",
+    "school": "holy",
+    "stats": { "ap": 1 },
+    "trigger_id": "on_turn_ap",
+    "trigger_value": 1,
+    "ai_behavior": { "mode": "aggressive", "weight": 4 },
+    "flavor": "Acts as if it remembers being more."
+  },
+  "barricade": {
+    "display_name": "Barricade",
+    "school": "siege",
+    "stats": { "def": 2 },
+    "trigger_id": "on_adj_defend",
+    "ai_behavior": { "mode": "defend", "weight": 10 },
+    "flavor": "Shielded when threatened. Instinct, not choice."
+  },
+  "grave_weight": {
+    "display_name": "Grave Weight",
+    "school": "siege",
+    "stats": { "def": 3, "spd": -1 },
+    "trigger_id": "",
+    "ai_behavior": { "mode": "defend", "weight": 9 },
+    "flavor": "Heavier than it looks. Slower than it should be."
+  },
+  "hollow_crown": {
+    "display_name": "Hollow Crown",
+    "school": "holy",
+    "stats": { "hp": 6 },
+    "trigger_id": "on_low_hp_buff",
+    "trigger_value": 2,
+    "threshold": 0.3,
+    "ai_behavior": { "mode": "attack", "weight": 7 },
+    "flavor": "Desperation given form."
   }
 }

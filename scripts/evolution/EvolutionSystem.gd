@@ -10,7 +10,7 @@ static func check_and_evolve(player: Unit) -> bool:
     return _evolve(player)
 
 static func _evolve(player: Unit) -> bool:
-    var pieces: Dictionary = DataLoader.load_config("pieces")
+    var pieces: Dictionary = DataLoader.load_config("player_pieces")
     var next_id: String = player.next_form
     if not pieces.has(next_id):
         return false

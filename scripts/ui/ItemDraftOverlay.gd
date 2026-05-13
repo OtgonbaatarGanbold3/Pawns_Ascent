@@ -34,10 +34,10 @@ func _ready() -> void:
 func show_draft(options: Array) -> void:
 	items = options
 	visible = true
+	_ensure_card_buttons(items.size())
 	_center_panel()
-	_apply_button(item_button_1, 0)
-	_apply_button(item_button_2, 1)
-	_apply_button(item_button_3, 2)
+	for i in range(_card_buttons.size()):
+		_apply_button(_card_buttons[i], i)
 	desc_label.text = "Choose one relic to carry into the next level."
 
 func hide_draft() -> void:
@@ -67,12 +67,15 @@ func _apply_button(button: Button, index: int) -> void:
 	if index >= items.size():
 		button.text = "-"
 		button.disabled = true
+		button.visible = false
 		return
 	if typeof(items[index]) != TYPE_DICTIONARY:
 		button.text = "-"
 		button.disabled = true
+		button.visible = false
 		return
 	var item: Dictionary = items[index]
+	button.visible = true
 	button.text = _format_card_text(item)
 	button.disabled = false
 
@@ -99,9 +102,7 @@ func _apply_styles() -> void:
 	panel.add_theme_stylebox_override("panel", panel_style)
 
 	for button in _card_buttons:
-		button.add_theme_font_size_override("font_size", 15)
-		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		_style_button(button, Color(0.085, 0.095, 0.105), Color(0.22, 0.27, 0.31))
+		_prepare_card_button(button)
 
 	skip_button.custom_minimum_size = Vector2(180, 46)
 	skip_button.add_theme_font_size_override("font_size", 18)
@@ -127,6 +128,20 @@ func _style_button(button: Button, fill: Color, border: Color) -> void:
 	var pressed: StyleBoxFlat = normal.duplicate() as StyleBoxFlat
 	pressed.bg_color = fill.darkened(0.08)
 	button.add_theme_stylebox_override("pressed", pressed)
+
+func _prepare_card_button(button: Button) -> void:
+	button.add_theme_font_size_override("font_size", 15)
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_style_button(button, Color(0.085, 0.095, 0.105), Color(0.22, 0.27, 0.31))
+
+func _ensure_card_buttons(count: int) -> void:
+	while _card_buttons.size() < count:
+		var button := Button.new()
+		button.name = "ItemButton%d" % (_card_buttons.size() + 1)
+		button.pressed.connect(_on_item_pressed.bind(_card_buttons.size()))
+		_prepare_card_button(button)
+		buttons_row.add_child(button)
+		_card_buttons.append(button)
 
 func _format_card_text(item: Dictionary) -> String:
 	var lines: Array = [
@@ -192,7 +207,9 @@ func _join_strings(values: Array, separator: String) -> String:
 
 func _resize_cards(panel_size: Vector2) -> void:
 	var available_width: float = max(280.0, panel_size.x - 72.0)
-	var card_width: float = floor((available_width - 28.0) / 3.0)
+	var visible_count: int = max(1, items.size())
+	var total_gap: float = max(0, visible_count - 1) * 14.0
+	var card_width: float = floor((available_width - total_gap) / float(visible_count))
 	card_width = clamp(card_width, 150.0, 304.0)
 	var card_height: float = clamp(panel_size.y * 0.52, 132.0, 196.0)
 	for button in _card_buttons:

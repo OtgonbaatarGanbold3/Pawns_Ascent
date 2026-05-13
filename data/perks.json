@@ -1,0 +1,47 @@
+{
+  "thick_skin": {
+    "display_name": "Thick Skin",
+    "summary": "The board presses. You stop yielding.",
+    "effects": {
+      "stat_bonus": { "def": 2 },
+      "score_events": ["perk_acquired"],
+      "log": "A harder shape settles under the rank."
+    }
+  },
+  "executioner": {
+    "display_name": "Executioner",
+    "summary": "Weak pieces become visible by the places they fail to cover.",
+    "effects": {
+      "stat_bonus": { "atk": 1 },
+      "score_events": ["perk_acquired"],
+      "log": "The next blow learns where to land."
+    }
+  },
+  "long_file": {
+    "display_name": "Long File",
+    "summary": "One more square accepts your foot.",
+    "effects": {
+      "move_range_bonus": 1,
+      "score_events": ["perk_acquired"],
+      "log": "The Plain grudgingly lengthens."
+    }
+  },
+  "hoarder": {
+    "display_name": "Hoarder",
+    "summary": "The dead leave small permissions behind.",
+    "effects": {
+      "gold": 18,
+      "score_events": ["perk_acquired"],
+      "log": "A closed hand opens in your pocket."
+    }
+  },
+  "cartographer": {
+    "display_name": "Cartographer",
+    "summary": "Fog remembers it was only a tile.",
+    "effects": {
+      "reveal_fog": true,
+      "score_events": ["perk_acquired"],
+      "log": "A few hidden squares lose their nerve."
+    }
+  }
+}

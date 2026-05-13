@@ -1,4 +1,5 @@
 {
   "bleed": { "damage_per_tick": 2, "duration": 2 },
-  "burn": { "damage_per_tick": 1, "duration": 1 }
+  "burn": { "damage_per_tick": 1, "duration": 1 },
+  "shielded": { "damage_per_tick": 0, "duration": 2, "damage_reduce": 2 }
 }

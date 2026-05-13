@@ -1,0 +1,32 @@
+{
+  "pursuer": {
+    "display_name": "Pursuer",
+    "summary": "Closes distance and forces contact.",
+    "priority": { "aggressive": 5, "attack": 2, "defend": -2, "flee": -6 },
+    "stat_bonus": { "hp": 0, "atk": 0, "def": 0, "spd": 0, "ap": 0 }
+  },
+  "keeper": {
+    "display_name": "Keeper",
+    "summary": "Holds useful terrain and punishes approach.",
+    "priority": { "aggressive": -2, "attack": 2, "defend": 6, "flee": -3 },
+    "stat_bonus": { "hp": 1, "atk": 0, "def": 0, "spd": 0, "ap": 0 }
+  },
+  "coward": {
+    "display_name": "Coward",
+    "summary": "Tries to survive instead of win.",
+    "priority": { "aggressive": -5, "attack": -2, "defend": 2, "flee": 8 },
+    "stat_bonus": { "hp": -3, "atk": 0, "def": 0, "spd": 1, "ap": 0 }
+  },
+  "warden": {
+    "display_name": "Warden",
+    "summary": "Forms a wall around stronger pieces.",
+    "priority": { "aggressive": 1, "attack": 2, "defend": 5, "flee": -4 },
+    "stat_bonus": { "hp": 2, "atk": 0, "def": 1, "spd": -1, "ap": 0 }
+  },
+  "zealot": {
+    "display_name": "Zealot",
+    "summary": "Ignores survival and spends itself forward.",
+    "priority": { "aggressive": 7, "attack": 5, "defend": -4, "flee": -8 },
+    "stat_bonus": { "hp": -2, "atk": 2, "def": -1, "spd": 0, "ap": 0 }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "categories": {
+    "damage": ["shard_of_rank", "bleeders_mark", "iron_chain"],
+    "survival": ["ward_rune", "mending_word", "barricade", "grave_weight", "hollow_crown"],
+    "utility": ["ashen_veil", "rank_echo"]
+  },
+  "first_draft": ["damage", "survival", "utility"]
+}
