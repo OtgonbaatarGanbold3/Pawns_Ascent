@@ -1,0 +1,29 @@
+{
+  "shield_pawn": {
+    "display_name": "Contract Shield",
+    "piece": "pawn",
+    "duration": 2,
+    "cost": 40,
+    "items": ["ward_rune"],
+    "role": "warden",
+    "summary": "A pawn paid to stand between laws."
+  },
+  "blade_knight": {
+    "display_name": "Contract Blade",
+    "piece": "knight",
+    "duration": 2,
+    "cost": 45,
+    "items": ["bleeders_mark"],
+    "role": "pursuer",
+    "summary": "A knight who moves before regret."
+  },
+  "quiet_bishop": {
+    "display_name": "Quiet Bishop",
+    "piece": "bishop",
+    "duration": 2,
+    "cost": 55,
+    "items": ["mending_word"],
+    "role": "keeper",
+    "summary": "A diagonal witness with a borrowed mercy."
+  }
+}

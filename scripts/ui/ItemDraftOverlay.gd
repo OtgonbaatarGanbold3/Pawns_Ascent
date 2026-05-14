@@ -132,6 +132,7 @@ func _style_button(button: Button, fill: Color, border: Color) -> void:
 func _prepare_card_button(button: Button) -> void:
 	button.add_theme_font_size_override("font_size", 15)
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_style_button(button, Color(0.085, 0.095, 0.105), Color(0.22, 0.27, 0.31))
 
 func _ensure_card_buttons(count: int) -> void:
@@ -210,7 +211,9 @@ func _resize_cards(panel_size: Vector2) -> void:
 	var visible_count: int = max(1, items.size())
 	var total_gap: float = max(0, visible_count - 1) * 14.0
 	var card_width: float = floor((available_width - total_gap) / float(visible_count))
-	card_width = clamp(card_width, 150.0, 304.0)
+	card_width = clamp(card_width, 96.0, 304.0)
 	var card_height: float = clamp(panel_size.y * 0.52, 132.0, 196.0)
+	if card_width < 140.0:
+		card_height = clamp(panel_size.y * 0.62, 176.0, 250.0)
 	for button in _card_buttons:
 		button.custom_minimum_size = Vector2(card_width, card_height)

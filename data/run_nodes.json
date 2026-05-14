@@ -45,6 +45,24 @@
       "summary": "A rule lies exposed. It may be worn.",
       "reward": "perk"
     },
+    "shop": {
+      "label": "Market",
+      "icon": "Scales",
+      "summary": "A file of hands trades what it failed to keep.",
+      "reward": "spend"
+    },
+    "upgrade": {
+      "label": "Anvil",
+      "icon": "Anvil",
+      "summary": "A mark can be struck deeper.",
+      "reward": "upgrade"
+    },
+    "ally_hire": {
+      "label": "Contract",
+      "icon": "Banner",
+      "summary": "Another piece offers to stand near your consequence.",
+      "reward": "contract"
+    },
     "ambush": {
       "label": "Ambush",
       "icon": "!",
@@ -62,11 +80,11 @@
   },
   "floors": [
     { "floor": 1, "slots": ["combat", "elite"] },
-    { "floor": 2, "slots": ["combat", "relic", "rest"] },
+    { "floor": 2, "slots": ["combat", "relic", "rest", "shop"] },
     { "floor": 3, "slots": ["combat", "elite", "story", "shrine"] },
-    { "floor": 4, "slots": ["combat", "elite", "relic"] },
-    { "floor": 5, "slots": ["combat", "ambush", "rest"] },
-    { "floor": 6, "slots": ["elite", "story"] },
+    { "floor": 4, "slots": ["combat", "elite", "relic", "upgrade"] },
+    { "floor": 5, "slots": ["combat", "ambush", "rest", "ally_hire"] },
+    { "floor": 6, "slots": ["elite", "story", "shop"] },
     { "floor": 7, "slots": ["boss"] }
   ],
   "encounter_rules": {

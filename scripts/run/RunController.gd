@@ -52,6 +52,10 @@ var _pending_post_combat_reward := ""
 var _last_node_summary: Dictionary = {}
 var _enemy_phase_movement_locked := false
 var _encounter_completed := false
+var _pending_run_setup: Dictionary = {}
+var _pending_end_victory := false
+var _pending_end_score := 0
+var _run_result_recorded := false
 
 func _ready() -> void:
     rng.randomize()
@@ -90,7 +94,7 @@ func _ready() -> void:
     end_screen.hide_screen()
     path_map.hide_path()
     _choice_overlay.hide_choices()
-    start_run()
+    _show_run_setup_mode()
 
 func _apply_layout() -> void:
     var viewport_size := get_viewport_rect().size
@@ -253,7 +257,7 @@ func _apply_panel_styles() -> void:
     var ui_style := PawnUITheme.make_panel_style(Color(0.055, 0.063, 0.071, 0.96), Color(0.31, 0.36, 0.4, 1.0), 12)
     ui_backdrop.add_theme_stylebox_override("panel", ui_style)
 
-func start_run() -> void:
+func start_run(setup: Dictionary = {}) -> void:
     score_manager.reset()
     player_items = []
     _pending_reward_node_id = ""
@@ -264,17 +268,41 @@ func start_run() -> void:
     _pending_post_combat_options = []
     _pending_post_combat_reward = ""
     _last_node_summary = {}
-    game_state.reset_run()
+    _run_result_recorded = false
+    game_state.reset_run(setup)
     combat_log.clear_log()
     _apply_starter_items()
+    _log_run_setup()
     _generate_run_path()
     _show_path_choice()
 
 func _generate_run_path() -> void:
     var run_cfg: Dictionary = DataLoader.load_config("run_nodes")
-    game_state.run_state["path_graph"] = RunPathGenerator.generate_path(rng, run_cfg)
+    var path_graph := RunPathGenerator.generate_path(rng, run_cfg)
+    path_graph = _apply_run_mode_to_path(path_graph, run_cfg)
+    game_state.run_state["path_graph"] = path_graph
     game_state.run_state["current_floor"] = 0
     game_state.run_state["current_node"] = {}
+
+func _apply_run_mode_to_path(path_graph: Dictionary, run_cfg: Dictionary) -> Dictionary:
+    if _current_setup_id("mode", "legacy") == "legacy":
+        return path_graph
+    var nodes: Dictionary = path_graph.get("nodes", {})
+    var node_types: Dictionary = run_cfg.get("node_types", {})
+    for node_id in nodes.keys():
+        var node: Dictionary = nodes[node_id]
+        if str(node.get("type", "")) != "story":
+            continue
+        var replacement_type := "relic" if int(node.get("floor", 1)) % 2 == 0 else "shrine"
+        var type_cfg: Dictionary = node_types.get(replacement_type, {})
+        node["type"] = replacement_type
+        node["label"] = str(type_cfg.get("label", replacement_type.capitalize()))
+        node["icon"] = str(type_cfg.get("icon", "Node"))
+        node["summary"] = str(type_cfg.get("summary", "The Plain waits."))
+        node["reward"] = str(type_cfg.get("reward", "none"))
+        nodes[node_id] = node
+    path_graph["nodes"] = nodes
+    return path_graph
 
 func _annotate_path_previews(path_graph: Dictionary) -> void:
     var nodes: Dictionary = path_graph.get("nodes", {})
@@ -293,6 +321,7 @@ func _preview_for_node(node: Dictionary) -> Dictionary:
         "intensity": str(pacing.get("intensity", "unknown")).capitalize(),
         "summary": str(pacing.get("preview", node.get("summary", ""))),
         "reward": _reward_preview(node),
+        "objective": _objective_preview_for_node(node),
         "enemy_count": 0,
         "pattern": ""
     }
@@ -322,8 +351,126 @@ func _reward_preview(node: Dictionary) -> String:
             return "Choice consequence"
         "shrine":
             return "Perk choice"
+        "shop":
+            return "Spend gold"
+        "upgrade":
+            return "Improve the run"
+        "ally_hire":
+            return "Temporary contract"
         _:
             return "Unknown"
+
+func _path_run_context() -> Dictionary:
+    var setup: Dictionary = game_state.run_state.get("setup", {})
+    var theme_cfg := _current_theme_cfg()
+    var difficulty_cfg := _current_difficulty_cfg()
+    var consequences: Array = game_state.run_state.get("active_consequences", [])
+    var consequence_names: Array = []
+    for consequence in consequences:
+        if typeof(consequence) == TYPE_DICTIONARY:
+            consequence_names.append(str((consequence as Dictionary).get("label", "Consequence")))
+    var contracts: Array = game_state.run_state.get("active_contracts", [])
+    var contract_names: Array = []
+    for contract in contracts:
+        if typeof(contract) == TYPE_DICTIONARY:
+            contract_names.append("%s (%d)" % [str((contract as Dictionary).get("label", "Contract")), int((contract as Dictionary).get("duration", 0))])
+    var allies: Array = game_state.run_state.get("active_allies", [])
+    var ally_names: Array = []
+    for ally in allies:
+        if typeof(ally) == TYPE_DICTIONARY:
+            ally_names.append("%s (%d)" % [str((ally as Dictionary).get("display_name", "Ally")), int((ally as Dictionary).get("duration", 0))])
+    return {
+        "mode": str(setup.get("mode", "legacy")).capitalize(),
+        "theme": str(theme_cfg.get("display_name", "Neutral")),
+        "difficulty": str(difficulty_cfg.get("display_name", "Wanderer")),
+        "gold": int(game_state.run_state.get("gold", 0)),
+        "consequences": consequence_names,
+        "contracts": contract_names,
+        "allies": ally_names,
+        "legacy_boss": str(game_state.get_legacy_boss().get("display_name", ""))
+    }
+
+func _objective_preview_for_node(node: Dictionary) -> String:
+    var node_type: String = str(node.get("type", "combat"))
+    if not node_type in ["combat", "elite", "ambush"]:
+        return ""
+    var chance := _objective_chance_for_node_type(node_type, int(node.get("floor", 1)))
+    if chance <= 0.0:
+        return ""
+    return "Objective chance: %d%%" % int(round(chance * 100.0))
+
+func _show_run_setup_mode() -> void:
+    var cfg: Dictionary = DataLoader.load_config("run_themes")
+    _pending_run_setup = cfg.get("default_setup", {}).duplicate(true)
+    _pending_choice_mode = "setup_mode"
+    _pending_choice_options = _config_choice_options(cfg.get("modes", {}), "mode")
+    _choice_overlay.show_choices(
+        "Choose the Run",
+        "The first square waits to learn what kind of law you will enter.",
+        _pending_choice_options
+    )
+
+func _show_run_setup_theme() -> void:
+    var cfg: Dictionary = DataLoader.load_config("run_themes")
+    _pending_choice_mode = "setup_theme"
+    _pending_choice_options = _config_choice_options(cfg.get("themes", {}), "theme")
+    _choice_overlay.show_choices(
+        "Choose the Plain",
+        "Every version of the board lies in a different way.",
+        _pending_choice_options
+    )
+
+func _show_run_setup_difficulty() -> void:
+    var cfg: Dictionary = DataLoader.load_config("run_themes")
+    _pending_choice_mode = "setup_difficulty"
+    _pending_choice_options = _config_choice_options(cfg.get("difficulties", {}), "difficulty")
+    _choice_overlay.show_choices(
+        "Choose the Pressure",
+        "The score grows with the cruelty that witnesses it.",
+        _pending_choice_options
+    )
+
+func _config_choice_options(entries: Dictionary, value_key: String) -> Array:
+    var options: Array = []
+    for id in entries.keys():
+        var entry: Dictionary = entries[id]
+        options.append({
+            "label": str(entry.get("display_name", str(id).capitalize())),
+            "summary": str(entry.get("summary", "")),
+            "value": str(id),
+            "value_key": value_key
+        })
+    return options
+
+func _on_setup_choice_selected(index: int) -> void:
+    if index < 0 or index >= _pending_choice_options.size():
+        return
+    var option: Dictionary = _pending_choice_options[index]
+    var key: String = str(option.get("value_key", ""))
+    if not key.is_empty():
+        _pending_run_setup[key] = str(option.get("value", ""))
+    _choice_overlay.hide_choices()
+    _pending_choice_options = []
+    match _pending_choice_mode:
+        "setup_mode":
+            _show_run_setup_theme()
+        "setup_theme":
+            _show_run_setup_difficulty()
+        "setup_difficulty":
+            _pending_choice_mode = "outcome"
+            start_run(_pending_run_setup)
+
+func _log_run_setup() -> void:
+    var setup: Dictionary = game_state.run_state.get("setup", {})
+    var cfg: Dictionary = DataLoader.load_config("run_themes")
+    var mode: Dictionary = cfg.get("modes", {}).get(str(setup.get("mode", "legacy")), {})
+    var theme_entry: Dictionary = cfg.get("themes", {}).get(str(setup.get("theme", "neutral")), {})
+    var difficulty: Dictionary = cfg.get("difficulties", {}).get(str(setup.get("difficulty", "wanderer")), {})
+    append_log("%s. %s. %s." % [
+        str(mode.get("display_name", "Legacy Run")),
+        str(theme_entry.get("display_name", "Neutral")),
+        str(difficulty.get("display_name", "Wanderer"))
+    ])
 
 func _best_preview_template(node: Dictionary) -> Dictionary:
     var templates_cfg: Dictionary = DataLoader.load_config("encounter_templates")
@@ -358,6 +505,7 @@ func _show_path_choice() -> void:
     var path_graph: Dictionary = game_state.run_state.get("path_graph", {})
     var available: Array = path_graph.get("available", [])
     _annotate_path_previews(path_graph)
+    path_graph["run_context"] = _path_run_context()
     game_state.run_state["path_graph"] = path_graph
     path_map.show_path(path_graph, available)
 
@@ -396,6 +544,12 @@ func _begin_run_node(node: Dictionary) -> void:
             _resolve_story_node(node)
         "shrine":
             _resolve_shrine_node(node)
+        "shop":
+            _resolve_shop_node(node)
+        "upgrade":
+            _resolve_upgrade_node(node)
+        "ally_hire":
+            _resolve_ally_hire_node(node)
         _:
             _complete_current_node()
 
@@ -444,6 +598,7 @@ func start_encounter_for_node(node: Dictionary) -> void:
     game_state.run_state["board"] = board
     _apply_template_terrain(board, template)
     _apply_pacing_terrain(board, floor_index)
+    _apply_theme_terrain(board)
     _apply_consequence_terrain(board)
 
     var player := _get_or_create_player()
@@ -452,7 +607,10 @@ func start_encounter_for_node(node: Dictionary) -> void:
     reveal_adjacent(board, player.position)
 
     var enemies := _spawn_enemies(board, encounter_cfg)
+    _spawn_legacy_boss_if_needed(board, encounter_cfg, enemies)
     game_state.run_state["enemies"] = enemies
+    var allies := _spawn_allies(board)
+    game_state.run_state["allies"] = allies
     _apply_pending_board_mutations(board)
     _place_encounter_objective(board, node, floor_index)
 
@@ -467,7 +625,9 @@ func start_encounter_for_node(node: Dictionary) -> void:
         append_log("Pattern: %s - %s" % [str(template.get("label", "Encounter")), str(template.get("summary", ""))])
     _log_objective_intro()
     _log_active_consequences()
+    _log_active_contracts()
     _decrement_consequences_after_encounter_start()
+    _decrement_contracts_after_encounter_start()
     start_player_phase()
 
 func _legacy_encounter_cfg(index: int) -> Dictionary:
@@ -496,7 +656,18 @@ func _encounter_cfg_for_node(node: Dictionary) -> Dictionary:
     cfg["floor"] = floor_index
     cfg["is_boss"] = bool(cfg.get("is_boss", node_type == "boss"))
     cfg["board"] = _board_cfg_for_floor(floor_index)
-    var count_bonus: int = _active_enemy_count_bonus() + int(_pacing_for_floor(floor_index).get("enemy_count_bonus", 0))
+    var theme_cfg := _current_theme_cfg()
+    var difficulty_cfg := _current_difficulty_cfg()
+    var enemy_types: Array = cfg.get("enemy_types", [])
+    for piece_id in theme_cfg.get("enemy_pool_bonus", []):
+        if not piece_id in enemy_types:
+            enemy_types.append(piece_id)
+    cfg["enemy_types"] = enemy_types
+    cfg["enemy_stat_bonus"] = _merge_stat_bonuses(
+        cfg.get("enemy_stat_bonus", {}),
+        difficulty_cfg.get("enemy_stat_bonus", {})
+    )
+    var count_bonus: int = _active_enemy_count_bonus() + int(_pacing_for_floor(floor_index).get("enemy_count_bonus", 0)) + int(difficulty_cfg.get("enemy_count_bonus", 0))
     cfg["spawn_min"] = max(1, int(cfg.get("spawn_min", 1)) + count_bonus)
     cfg["spawn_max"] = max(int(cfg.get("spawn_min", 1)), int(cfg.get("spawn_max", 1)) + count_bonus)
     return cfg
@@ -563,10 +734,12 @@ func _board_cfg_for_floor(floor_index: int) -> Dictionary:
             return {
                 "floor": floor_index,
                 "rows": int(band.get("rows", 8)),
-                "cols": int(band.get("cols", 9))
+                "cols": int(band.get("cols", 9)),
+                "theme": _current_setup_id("theme", "neutral")
             }
     var fallback: Dictionary = DataLoader.load_config("encounters").get("board", { "rows": 8, "cols": 9 })
     fallback["floor"] = floor_index
+    fallback["theme"] = _current_setup_id("theme", "neutral")
     return fallback
 
 func start_player_phase() -> void:
@@ -613,6 +786,7 @@ func start_tick_phase() -> void:
     turn_system.start_tick_phase(units, board)
     if _update_objectives_on_tick():
         return
+    _apply_theme_tick(board)
     _maybe_mutate_board(board)
     _remove_dead_units()
     board_view.update_board(board)
@@ -746,54 +920,97 @@ func _after_player_action(enemy_movement_locked: bool = false) -> void:
     if _check_player_dead():
         return
     if player != null and player.ap <= 0:
-        await start_enemy_phase(enemy_movement_locked)
+        await start_ally_phase(enemy_movement_locked)
 
 func _on_end_turn_pressed() -> void:
     if _resolving_action or turn_system.phase != TurnSystem.Phase.PLAYER:
         return
     _resolving_action = true
-    await start_enemy_phase()
+    await start_ally_phase()
     _resolving_action = false
+
+func start_ally_phase(enemy_movement_locked: bool = false) -> void:
+    var allies: Array = game_state.run_state.get("allies", [])
+    var active_allies: Array = []
+    for ally_value in allies:
+        var ally: Unit = ally_value as Unit
+        if ally != null and not ally.is_dead():
+            active_allies.append(ally)
+    if active_allies.is_empty():
+        await start_enemy_phase(enemy_movement_locked)
+        return
+    turn_system.start_ally_phase()
+    stats_panel.set_phase("Ally", _current_turn())
+    _refresh_tactical_hud()
+    active_allies.sort_custom(Callable(self, "_sort_units_by_spd_desc"))
+    for ally_value in active_allies:
+        var ally: Unit = ally_value as Unit
+        if ally == null or ally.is_dead():
+            continue
+        ally.ap = ally.max_ap
+        await _run_ally_turn(ally)
+        if _check_encounter_cleared():
+            return
+        var costs: Dictionary = DataLoader.load_config("action_costs")
+        var delay_ms: int = int(costs.get("enemy_action_delay_ms", 120))
+        if delay_ms > 0:
+            await get_tree().create_timer(float(delay_ms) / 1000.0).timeout
+    await start_enemy_phase(enemy_movement_locked)
+
+func _run_ally_turn(ally: Unit) -> void:
+    var board: BoardData = game_state.run_state.get("board", null) as BoardData
+    if board == null:
+        return
+    var enemies: Array = game_state.run_state.get("enemies", [])
+    var target := _nearest_target(ally, enemies)
+    if target == null:
+        return
+    await _run_ai_turn_against(ally, target, false)
 
 func _run_enemy_turn(enemy: Unit, movement_locked: bool = false) -> void:
     var board: BoardData = game_state.run_state.get("board", null) as BoardData
     var player: Unit = game_state.run_state.get("player", null) as Unit
     if board == null or player == null:
         return
+    await _run_ai_turn_against(enemy, player, movement_locked)
 
+func _run_ai_turn_against(unit: Unit, target_unit: Unit, movement_locked: bool = false) -> void:
+    var board: BoardData = game_state.run_state.get("board", null) as BoardData
+    if board == null or unit == null or target_unit == null:
+        return
     var costs: Dictionary = DataLoader.load_config("action_costs")
     var attack_cost: int = int(costs.get("attack", 1))
     var move_cost: int = int(costs.get("move", 1))
     var wait_cost: int = int(costs.get("wait", 1))
 
-    var action := AISystem.decide_action(enemy, board, player)
+    var action := AISystem.decide_action(unit, board, target_unit)
     var action_type: String = str(action.get("type", "wait"))
     if action_type == "attack":
-        if MovementSystem.can_attack(enemy, player, board) and turn_system.spend_ap(enemy, attack_cost):
-            _attack(enemy, player)
+        if MovementSystem.can_attack(unit, target_unit, board) and turn_system.spend_ap(unit, attack_cost):
+            _attack(unit, target_unit)
             _refresh_tactical_hud()
-            if player.is_dead():
+            if target_unit.is_dead():
                 return
     elif action_type == "move":
         if movement_locked:
-            turn_system.spend_ap(enemy, wait_cost)
+            turn_system.spend_ap(unit, wait_cost)
             if bool(costs.get("one_action_per_unit_phase", true)):
-                enemy.ap = 0
+                unit.ap = 0
             return
-        var target_value: Variant = action.get("target", enemy.position)
-        var target: Vector2i = enemy.position
+        var target_value: Variant = action.get("target", unit.position)
+        var target: Vector2i = unit.position
         if typeof(target_value) == TYPE_VECTOR2I:
             target = target_value
-        if target == enemy.position:
-            turn_system.spend_ap(enemy, wait_cost)
-        elif turn_system.spend_ap(enemy, move_cost):
-            await _move_unit(enemy, target)
+        if target == unit.position:
+            turn_system.spend_ap(unit, wait_cost)
+        elif turn_system.spend_ap(unit, move_cost):
+            await _move_unit(unit, target)
             _refresh_tactical_hud()
     else:
-        turn_system.spend_ap(enemy, wait_cost)
+        turn_system.spend_ap(unit, wait_cost)
 
     if bool(costs.get("one_action_per_unit_phase", true)):
-        enemy.ap = 0
+        unit.ap = 0
 
 func _resolve_player_move(player: Unit, target: Vector2i) -> void:
     if not _simultaneous_move_enabled():
@@ -870,6 +1087,7 @@ func _on_unit_killed(attacker: Unit, victim: Unit) -> void:
     var board: BoardData = game_state.run_state.get("board", null) as BoardData
     if board == null:
         return
+    var victim_pos := victim.position
     board.clear_unit(victim.position)
 
     if attacker.is_player:
@@ -880,9 +1098,13 @@ func _on_unit_killed(attacker: Unit, victim: Unit) -> void:
             score_manager.add_score("enemy_kill")
         if EvolutionSystem.check_and_evolve(attacker):
             _refresh_player_build(attacker)
+            _record_evolution_step(attacker.piece_id)
             score_manager.add_score("evolution")
             append_log("Evolved to %s" % attacker.display_name)
             stats_panel.update_unit(attacker)
+        _apply_theme_on_player_kill(victim_pos)
+    elif attacker.is_ally and not victim.is_player and not victim.is_ally:
+        score_manager.add_score("enemy_kill")
 
     _remove_dead_units()
     board_view.update_board(board)
@@ -940,6 +1162,8 @@ func _complete_encounter(reason: String) -> bool:
     var node: Dictionary = game_state.run_state.get("current_node", {})
     var node_type: String = str(node.get("type", "combat"))
     _last_node_summary = _make_node_summary(node)
+    _save_active_ally_hp()
+    _decrement_allies_after_encounter_complete()
     _apply_node_rewards(node)
     if node_type == "boss":
         end_run(true)
@@ -972,7 +1196,7 @@ func _place_encounter_objective(board: BoardData, node: Dictionary, floor_index:
 func _select_objective(node: Dictionary, floor_index: int) -> Dictionary:
     var cfg: Dictionary = DataLoader.load_config("encounter_objectives")
     var node_type: String = str(node.get("type", "combat"))
-    var chance: float = float(cfg.get("objective_chance", {}).get(node_type, 0.0))
+    var chance: float = _objective_chance_for_node_type(node_type, floor_index)
     if chance <= 0.0 or rng.randf() > chance:
         return {}
     var types: Dictionary = cfg.get("types", {})
@@ -1097,12 +1321,25 @@ func _apply_objective_reward(objective: Dictionary) -> void:
     if not log_text.is_empty():
         append_log(log_text)
     var gold_delta: int = _roll_int_range(objective.get("reward_gold", [0, 0]))
+    gold_delta += int(_current_theme_cfg().get("theme_mechanic", {}).get("objective_gold_bonus", 0))
     if gold_delta != 0:
         game_state.run_state["gold"] = max(0, int(game_state.run_state.get("gold", 0)) + gold_delta)
         append_log("Gold %+d" % gold_delta)
     var score_events: Array = objective.get("score_events", [])
     for event_id in score_events:
         score_manager.add_score(str(event_id))
+
+func _objective_chance_for_node_type(node_type: String, floor_index: int) -> float:
+    var cfg: Dictionary = DataLoader.load_config("encounter_objectives")
+    var chance: float = float(cfg.get("objective_chance", {}).get(node_type, 0.0))
+    var bonuses: Array = cfg.get("floor_chance_bonus", [])
+    for bonus_value in bonuses:
+        if typeof(bonus_value) != TYPE_DICTIONARY:
+            continue
+        var bonus: Dictionary = bonus_value
+        if floor_index >= int(bonus.get("min_floor", 1)):
+            chance += float(bonus.get("bonus", 0.0))
+    return clamp(chance, 0.0, 1.0)
 
 func _clear_objective_marker(objective: Dictionary) -> void:
     var board: BoardData = game_state.run_state.get("board", null) as BoardData
@@ -1202,6 +1439,13 @@ func show_item_draft(reward_type: String = "draft") -> void:
     var options := _curated_first_draft(items_cfg, draft_size)
     if options.is_empty():
         var pool: Array = []
+        for item_id in _current_theme_cfg().get("draft_bias", []):
+            var biased_id := str(item_id)
+            if _player_has_item(biased_id) or not items_cfg.has(biased_id):
+                continue
+            var biased: Dictionary = items_cfg[biased_id].duplicate(true)
+            biased["id"] = biased_id
+            pool.append(biased)
         for item_id in items_cfg.keys():
             if not _player_has_item(item_id):
                 var data: Dictionary = items_cfg[item_id]
@@ -1329,18 +1573,39 @@ func _resolve_shrine_node(node: Dictionary) -> void:
         options
     )
 
+func _resolve_shop_node(node: Dictionary) -> void:
+    var outcomes: Dictionary = DataLoader.load_config("run_outcomes")
+    var options: Array = _theme_shop_options(outcomes.get("shop_options", []))
+    _show_choice_node(node, "Market", str(node.get("summary", "Hands wait.")), options)
+
+func _resolve_upgrade_node(node: Dictionary) -> void:
+    var outcomes: Dictionary = DataLoader.load_config("run_outcomes")
+    var options: Array = outcomes.get("upgrade_options", [])
+    _show_choice_node(node, "Anvil", str(node.get("summary", "A mark can deepen.")), options)
+
+func _resolve_ally_hire_node(node: Dictionary) -> void:
+    var outcomes: Dictionary = DataLoader.load_config("run_outcomes")
+    var options: Array = outcomes.get("ally_hire_options", [])
+    _show_choice_node(node, "Contract", str(node.get("summary", "A banner waits.")), options)
+
 func _show_choice_node(node: Dictionary, title: String, body: String, options: Array) -> void:
     _pending_choice_node = node.duplicate(true)
-    _pending_choice_options = options
+    _pending_choice_options = _with_effect_previews(options)
     _pending_choice_mode = "outcome"
     append_log(body)
     board_view.visible = false
     board_backdrop.visible = false
     bottom_bar.visible = false
     ui_backdrop.visible = false
-    _choice_overlay.show_choices(title, body, options)
+    _choice_overlay.show_choices(title, body, _pending_choice_options)
 
 func _on_choice_selected(index: int) -> void:
+    if _pending_choice_mode.begins_with("setup_"):
+        _on_setup_choice_selected(index)
+        return
+    if _pending_choice_mode == "legacy":
+        _on_legacy_choice_selected(index)
+        return
     if _pending_choice_mode == "post_combat":
         _on_post_combat_continue()
         return
@@ -1351,6 +1616,9 @@ func _on_choice_selected(index: int) -> void:
         return
     var option: Dictionary = _pending_choice_options[index]
     var node: Dictionary = _pending_choice_node
+    if not _can_afford_choice(option):
+        append_log("Not enough gold.")
+        return
     _choice_overlay.hide_choices()
     _pending_choice_node = {}
     _pending_choice_options = []
@@ -1407,6 +1675,70 @@ func _on_item_replacement_selected(index: int) -> void:
         _add_player_item(item_id, index)
     _complete_current_node()
 
+func _with_effect_previews(options: Array) -> Array:
+    var result: Array = []
+    for option_value in options:
+        if typeof(option_value) != TYPE_DICTIONARY:
+            continue
+        var option: Dictionary = (option_value as Dictionary).duplicate(true)
+        var effects: Dictionary = option.get("effects", {})
+        var preview := _effect_preview(effects)
+        if not preview.is_empty():
+            var summary: String = str(option.get("summary", ""))
+            option["summary"] = "%s\n%s" % [summary, preview] if not summary.is_empty() else preview
+        if not _can_afford_choice(option):
+            option["disabled"] = true
+            var gold: int = int(game_state.run_state.get("gold", 0))
+            var cost: int = int(effects.get("cost_gold", 0))
+            option["disabled_reason"] = "Need %d more gold." % max(0, cost - gold)
+        result.append(option)
+    return result
+
+func _effect_preview(effects: Dictionary) -> String:
+    var parts: Array = []
+    var cost: int = int(effects.get("cost_gold", 0))
+    if cost > 0:
+        parts.append("Cost %d gold" % cost)
+    if effects.has("gold_range"):
+        var range_values: Array = effects.get("gold_range", [])
+        if range_values.size() >= 2:
+            parts.append("Gold %s-%s" % [str(range_values[0]), str(range_values[1])])
+    if effects.has("heal_percent"):
+        parts.append("Heal %d%%" % int(round(float(effects.get("heal_percent", 0.0)) * 100.0)))
+    var hp_delta: int = int(effects.get("hp_delta", 0))
+    if hp_delta != 0:
+        parts.append("HP %+d" % hp_delta)
+    if effects.has("item_id"):
+        var item_id: String = str(effects.get("item_id", ""))
+        var item: Dictionary = DataLoader.load_config("items").get(item_id, {})
+        parts.append("Relic: %s" % str(item.get("display_name", item_id)))
+    if effects.has("player_stat_bonus"):
+        parts.append(_stat_bonus_text(effects.get("player_stat_bonus", {})))
+    if effects.has("contract"):
+        var contract: Dictionary = effects.get("contract", {})
+        parts.append("%s for %d encounters" % [str(contract.get("label", "Contract")), int(contract.get("duration", 1))])
+    if effects.has("ally_id"):
+        var ally_id: String = str(effects.get("ally_id", ""))
+        var ally: Dictionary = DataLoader.load_config("ally_units").get(ally_id, {})
+        parts.append("Ally: %s" % str(ally.get("display_name", ally_id)))
+    if effects.has("consequence"):
+        parts.append("Next board changes")
+    return _join_strings(parts.filter(func(value): return not str(value).is_empty()), " | ")
+
+func _stat_bonus_text(stats: Dictionary) -> String:
+    var parts: Array = []
+    for stat_name in ["hp", "atk", "def", "spd", "ap"]:
+        var value: int = int(stats.get(stat_name, 0))
+        if value == 0:
+            continue
+        parts.append("%+d %s" % [value, stat_name.to_upper()])
+    return _join_strings(parts, ", ")
+
+func _can_afford_choice(option: Dictionary) -> bool:
+    var effects: Dictionary = option.get("effects", {})
+    var cost: int = int(effects.get("cost_gold", 0))
+    return cost <= 0 or int(game_state.run_state.get("gold", 0)) >= cost
+
 func _perk_choice_options() -> Array:
     var perks_cfg: Dictionary = DataLoader.load_config("perks")
     var owned: Array = game_state.run_state.get("perks", [])
@@ -1427,6 +1759,27 @@ func _perk_choice_options() -> Array:
         })
     return options
 
+func _theme_shop_options(base_options: Array) -> Array:
+    var options: Array = base_options.duplicate(true)
+    var items_cfg: Dictionary = DataLoader.load_config("items")
+    for item_id_value in _current_theme_cfg().get("draft_bias", []):
+        var item_id := str(item_id_value)
+        if _player_has_item(item_id) or not items_cfg.has(item_id):
+            continue
+        var item: Dictionary = items_cfg.get(item_id, {})
+        options.insert(0, {
+            "label": "Buy %s" % str(item.get("display_name", item_id)),
+            "summary": "40 gold. The market offers what this Plain favors.",
+            "effects": {
+                "cost_gold": 40,
+                "item_id": item_id,
+                "score_events": ["item_pickup"],
+                "log": "%s changes hands." % str(item.get("display_name", item_id))
+            }
+        })
+        break
+    return options
+
 func _add_perk(perk_id: String) -> void:
     var perks: Array = game_state.run_state.get("perks", [])
     if perk_id in perks:
@@ -1444,9 +1797,18 @@ func _add_perk(perk_id: String) -> void:
 func _refresh_player_build(player: Unit) -> void:
     if player == null:
         return
-    player.run_stat_bonuses = _aggregate_perk_stat_bonuses()
+    player.run_stat_bonuses = _aggregate_run_stat_bonuses()
     ItemSystem.apply_items(player, player_items)
     player.trigger_flags["move_range_bonus"] = int(player.trigger_flags.get("move_range_bonus", 0)) + _aggregate_perk_move_bonus()
+
+func _aggregate_run_stat_bonuses() -> Dictionary:
+    var totals := _aggregate_perk_stat_bonuses()
+    totals = _merge_stat_bonuses(totals, game_state.run_state.get("run_stat_bonuses", {}))
+    for contract_value in game_state.run_state.get("active_contracts", []):
+        if typeof(contract_value) != TYPE_DICTIONARY:
+            continue
+        totals = _merge_stat_bonuses(totals, (contract_value as Dictionary).get("stat_bonus", {}))
+    return totals
 
 func _aggregate_perk_stat_bonuses() -> Dictionary:
     var totals := {"hp": 0, "atk": 0, "def": 0, "spd": 0, "ap": 0}
@@ -1499,6 +1861,10 @@ func _draft_reward_for_node(node: Dictionary) -> String:
 func _apply_outcome_effects(effects: Dictionary, node: Dictionary = {}) -> bool:
     if effects.is_empty():
         return false
+    var cost: int = int(effects.get("cost_gold", 0))
+    if cost > 0:
+        game_state.run_state["gold"] = max(0, int(game_state.run_state.get("gold", 0)) - cost)
+        append_log("Gold -%d" % cost)
     var log_text: String = str(effects.get("log", ""))
     if not log_text.is_empty():
         append_log(log_text)
@@ -1543,6 +1909,27 @@ func _apply_outcome_effects(effects: Dictionary, node: Dictionary = {}) -> bool:
     if not perk_id.is_empty():
         _add_perk(perk_id)
 
+    var item_id: String = str(effects.get("item_id", ""))
+    if not item_id.is_empty():
+        _add_player_item(item_id)
+
+    var stat_bonus: Dictionary = effects.get("player_stat_bonus", {})
+    if not stat_bonus.is_empty():
+        var run_bonuses: Dictionary = game_state.run_state.get("run_stat_bonuses", {})
+        game_state.run_state["run_stat_bonuses"] = _merge_stat_bonuses(run_bonuses, stat_bonus)
+        var stat_player: Unit = game_state.run_state.get("player", null) as Unit
+        if stat_player != null:
+            _refresh_player_build(stat_player)
+            stats_panel.update_unit(stat_player)
+
+    var contract: Dictionary = effects.get("contract", {})
+    if not contract.is_empty():
+        _add_contract(contract)
+
+    var ally_id: String = str(effects.get("ally_id", ""))
+    if not ally_id.is_empty():
+        _add_active_ally(ally_id)
+
     if bool(effects.get("reveal_fog", false)):
         _reveal_all_fog()
 
@@ -1578,6 +1965,35 @@ func _add_consequence(consequence: Dictionary) -> void:
     if not log_text.is_empty():
         append_log(log_text)
 
+func _add_contract(contract: Dictionary) -> void:
+    var active: Array = game_state.run_state.get("active_contracts", [])
+    var copy: Dictionary = contract.duplicate(true)
+    copy["duration"] = max(1, int(copy.get("duration", 1)))
+    active.append(copy)
+    game_state.run_state["active_contracts"] = active
+    var player: Unit = game_state.run_state.get("player", null) as Unit
+    if player != null:
+        _refresh_player_build(player)
+        stats_panel.update_unit(player)
+    append_log("%s signed." % str(copy.get("label", "Contract")))
+
+func _add_active_ally(ally_id: String) -> void:
+    var ally_cfg: Dictionary = DataLoader.load_config("ally_units").get(ally_id, {})
+    if ally_cfg.is_empty():
+        return
+    var active: Array = game_state.run_state.get("active_allies", [])
+    var record := {
+        "id": ally_id,
+        "record_id": "%s_%d" % [ally_id, int(game_state.run_state.get("ally_serial", 0))],
+        "display_name": str(ally_cfg.get("display_name", ally_id)),
+        "duration": max(1, int(ally_cfg.get("duration", 1))),
+        "current_hp": -1
+    }
+    game_state.run_state["ally_serial"] = int(game_state.run_state.get("ally_serial", 0)) + 1
+    active.append(record)
+    game_state.run_state["active_allies"] = active
+    append_log("%s signs on." % str(record.get("display_name", "Ally")))
+
 func _active_enemy_count_bonus() -> int:
     var total := 0
     for consequence in game_state.run_state.get("active_consequences", []):
@@ -1608,6 +2024,65 @@ func _decrement_consequences_after_encounter_start() -> void:
             active[i] = consequence
     game_state.run_state["active_consequences"] = active
 
+func _decrement_contracts_after_encounter_start() -> void:
+    var active: Array = game_state.run_state.get("active_contracts", [])
+    var changed := false
+    for i in range(active.size() - 1, -1, -1):
+        if typeof(active[i]) != TYPE_DICTIONARY:
+            active.remove_at(i)
+            changed = true
+            continue
+        var contract: Dictionary = active[i]
+        contract["duration"] = int(contract.get("duration", 1)) - 1
+        if int(contract.get("duration", 0)) <= 0:
+            append_log("%s ends." % str(contract.get("label", "Contract")))
+            active.remove_at(i)
+            changed = true
+        else:
+            active[i] = contract
+    game_state.run_state["active_contracts"] = active
+    if changed:
+        var player: Unit = game_state.run_state.get("player", null) as Unit
+        if player != null:
+            _refresh_player_build(player)
+            stats_panel.update_unit(player)
+
+func _decrement_allies_after_encounter_complete() -> void:
+    var active: Array = game_state.run_state.get("active_allies", [])
+    for i in range(active.size() - 1, -1, -1):
+        if typeof(active[i]) != TYPE_DICTIONARY:
+            active.remove_at(i)
+            continue
+        var ally: Dictionary = active[i]
+        ally["duration"] = int(ally.get("duration", 1)) - 1
+        if int(ally.get("duration", 0)) <= 0:
+            append_log("%s leaves the file." % str(ally.get("display_name", "Ally")))
+            active.remove_at(i)
+        else:
+            active[i] = ally
+    game_state.run_state["active_allies"] = active
+
+func _save_active_ally_hp() -> void:
+    var by_record: Dictionary = {}
+    for ally_value in game_state.run_state.get("allies", []):
+        var ally: Unit = ally_value as Unit
+        if ally == null:
+            continue
+        var record_id: String = str(ally.trigger_flags.get("ally_record_id", ""))
+        if not record_id.is_empty():
+            by_record[record_id] = ally
+    var active: Array = game_state.run_state.get("active_allies", [])
+    for i in range(active.size()):
+        if typeof(active[i]) != TYPE_DICTIONARY:
+            continue
+        var record: Dictionary = active[i]
+        var record_id: String = str(record.get("record_id", ""))
+        var ally: Unit = by_record.get(record_id, null) as Unit
+        if ally != null and not ally.is_dead():
+            record["current_hp"] = ally.hp
+            active[i] = record
+    game_state.run_state["active_allies"] = active
+
 func _log_active_consequences() -> void:
     var active: Array = game_state.run_state.get("active_consequences", [])
     if active.is_empty():
@@ -1618,6 +2093,17 @@ func _log_active_consequences() -> void:
             names.append(str((consequence as Dictionary).get("label", "Consequence")))
     if not names.is_empty():
         append_log("Carried forward: %s" % _join_strings(names, ", "))
+
+func _log_active_contracts() -> void:
+    var active: Array = game_state.run_state.get("active_contracts", [])
+    if active.is_empty():
+        return
+    var names: Array = []
+    for contract in active:
+        if typeof(contract) == TYPE_DICTIONARY:
+            names.append("%s %d" % [str((contract as Dictionary).get("label", "Contract")), int((contract as Dictionary).get("duration", 0))])
+    if not names.is_empty():
+        append_log("Contracts: %s" % _join_strings(names, ", "))
 
 func _apply_pending_board_mutations(board: BoardData) -> void:
     var count: int = int(game_state.run_state.get("pending_board_mutations", 0))
@@ -1653,6 +2139,97 @@ func _apply_pacing_terrain(board: BoardData, floor_index: int) -> void:
         "count": bonus_count
     }])
 
+func _apply_theme_terrain(board: BoardData) -> void:
+    if board == null:
+        return
+    var marks: Array = _current_theme_cfg().get("terrain_marks", [])
+    _apply_terrain_marks(board, marks)
+
+func _apply_theme_tick(board: BoardData) -> void:
+    if board == null:
+        return
+    var mechanic: Dictionary = _current_theme_cfg().get("theme_mechanic", {})
+    var interval: int = int(mechanic.get("terrain_pulse_interval", 0))
+    if interval <= 0 or _current_turn() % interval != 0:
+        return
+    var pulse: Dictionary = mechanic.get("terrain_pulse", {})
+    if pulse.is_empty():
+        return
+    _apply_terrain_marks(board, [pulse])
+    var log_text: String = str(mechanic.get("log", ""))
+    append_log(log_text if not log_text.is_empty() else "The board answers its own heat.")
+    var player: Unit = game_state.run_state.get("player", null) as Unit
+    if player != null:
+        board_view.show_float_text(player.position, "Theme", Color(1.0, 0.62, 0.34))
+
+func _apply_theme_on_player_kill(victim_pos: Vector2i) -> void:
+    var mechanic: Dictionary = _current_theme_cfg().get("theme_mechanic", {})
+    if mechanic.is_empty():
+        return
+    var terrain_id: String = str(mechanic.get("on_kill_terrain", ""))
+    if not terrain_id.is_empty():
+        _replace_tile_terrain(victim_pos, terrain_id)
+        board_view.play_mutation_flash(victim_pos)
+        board_view.show_float_text(victim_pos, terrain_id.capitalize(), Color(0.72, 0.9, 1.0))
+        var terrain_log: String = str(mechanic.get("on_kill_terrain_log", ""))
+        if not terrain_log.is_empty():
+            append_log(terrain_log)
+    var every: int = int(mechanic.get("on_kill_every", 0))
+    if every <= 0:
+        return
+    var count: int = int(game_state.run_state.get("theme_kill_count", 0)) + 1
+    game_state.run_state["theme_kill_count"] = count
+    if count % every != 0:
+        return
+    _apply_theme_aoe(victim_pos, int(mechanic.get("aoe_damage", 0)), int(mechanic.get("aoe_radius", 1)), str(mechanic.get("log", "")))
+
+func _apply_theme_aoe(center: Vector2i, damage: int, radius: int, log_text: String) -> void:
+    if damage <= 0:
+        return
+    var board: BoardData = game_state.run_state.get("board", null) as BoardData
+    if board == null:
+        return
+    if not log_text.is_empty():
+        append_log(log_text)
+    var player: Unit = game_state.run_state.get("player", null) as Unit
+    var enemies: Array = game_state.run_state.get("enemies", [])
+    for enemy_value in enemies.duplicate():
+        var enemy: Unit = enemy_value as Unit
+        if enemy == null or enemy.is_dead():
+            continue
+        var dist: int = abs(enemy.position.x - center.x) + abs(enemy.position.y - center.y)
+        if dist > radius:
+            continue
+        board_view.play_attack_flash(enemy.position)
+        board_view.show_float_text(enemy.position, "Chain", Color(0.78, 0.92, 1.0))
+        append_log("%s takes %d from the theme." % [enemy.display_name, damage])
+        if enemy.apply_damage(damage):
+            board.clear_unit(enemy.position)
+            if player != null:
+                player.kills += 1
+                score_manager.add_score("enemy_kill")
+                if EvolutionSystem.check_and_evolve(player):
+                    _refresh_player_build(player)
+                    _record_evolution_step(player.piece_id)
+                    score_manager.add_score("evolution")
+                    append_log("Evolved to %s" % player.display_name)
+    _remove_dead_units()
+
+func _replace_tile_terrain(pos: Vector2i, terrain_id: String) -> void:
+    var board: BoardData = game_state.run_state.get("board", null) as BoardData
+    if board == null or not board.is_in_bounds(pos):
+        return
+    var terrain_cfg: Dictionary = DataLoader.load_config("terrain")
+    if not terrain_cfg.has(terrain_id):
+        return
+    var tile: Tile = board.get_tile(pos)
+    if tile == null or not tile.objective_type.is_empty() or tile.piece != null:
+        return
+    var replacement := Tile.new()
+    replacement.init_from_terrain(terrain_id, terrain_cfg.get(terrain_id, {}))
+    replacement.revealed = not bool(replacement.terrain_data.get("fog", false))
+    board.set_tile(pos, replacement)
+
 func _apply_terrain_marks(board: BoardData, marks: Array) -> void:
     var terrain_cfg: Dictionary = DataLoader.load_config("terrain")
     for mark_value in marks:
@@ -1671,13 +2248,31 @@ func _apply_terrain_marks(board: BoardData, marks: Array) -> void:
             if placed >= count:
                 break
             var tile: Tile = board.get_tile(pos)
-            if tile == null or tile.piece != null:
+            if tile == null or tile.piece != null or not tile.objective_type.is_empty():
                 continue
             var replacement := Tile.new()
             replacement.init_from_terrain(terrain_id, terrain_cfg.get(terrain_id, {}))
             replacement.revealed = not bool(replacement.terrain_data.get("fog", false))
             board.set_tile(pos, replacement)
             placed += 1
+
+func _current_setup_id(key: String, fallback: String) -> String:
+    var setup: Dictionary = game_state.run_state.get("setup", {})
+    return str(setup.get(key, fallback))
+
+func _current_theme_cfg() -> Dictionary:
+    var cfg: Dictionary = DataLoader.load_config("run_themes")
+    return cfg.get("themes", {}).get(_current_setup_id("theme", "neutral"), {})
+
+func _current_difficulty_cfg() -> Dictionary:
+    var cfg: Dictionary = DataLoader.load_config("run_themes")
+    return cfg.get("difficulties", {}).get(_current_setup_id("difficulty", "wanderer"), {})
+
+func _merge_stat_bonuses(base: Dictionary, extra: Dictionary) -> Dictionary:
+    var merged := base.duplicate(true)
+    for stat_name in extra.keys():
+        merged[stat_name] = int(merged.get(stat_name, 0)) + int(extra.get(stat_name, 0))
+    return merged
 
 func _first_open_position(board: BoardData, zone: String, used_positions: Dictionary) -> Vector2i:
     var positions := _positions_for_zone(board, zone)
@@ -1722,12 +2317,100 @@ func _pos_key(pos: Vector2i) -> String:
 
 func end_run(victory: bool) -> void:
     var score: int = score_manager.get_final_score(game_state.run_state)
-    end_screen.show_screen(victory, score)
+    _record_run_result_once(victory, score)
+    _show_legacy_choice(victory, score)
     _refresh_tactical_hud()
 
 func _on_restart_requested() -> void:
     end_screen.hide_screen()
-    start_run()
+    _show_run_setup_mode()
+
+func _record_run_result_once(victory: bool, score: int) -> void:
+    if _run_result_recorded:
+        return
+    _run_result_recorded = true
+    var player: Unit = game_state.run_state.get("player", null) as Unit
+    var summary := {
+        "piece": player.piece_id if player != null else "",
+        "kills": player.kills if player != null else 0
+    }
+    game_state.record_run_result(victory, score, summary)
+
+func _show_legacy_choice(victory: bool, score: int) -> void:
+    _pending_end_victory = victory
+    _pending_end_score = score
+    var player: Unit = game_state.run_state.get("player", null) as Unit
+    if player == null:
+        end_screen.show_screen(victory, score, _score_details())
+        return
+    _pending_choice_mode = "legacy"
+    _pending_choice_options = [
+        {
+            "label": "Carry This Shape",
+            "summary": "The next final board will remember %s." % player.display_name
+        },
+        {
+            "label": "No Legacy",
+            "summary": "Let the King wait alone."
+        }
+    ]
+    board_view.visible = false
+    board_backdrop.visible = false
+    bottom_bar.visible = false
+    ui_backdrop.visible = false
+    _choice_overlay.show_choices(
+        "Choose What Follows",
+        "A finished run leaves one piece behind in the law.",
+        _pending_choice_options
+    )
+
+func _on_legacy_choice_selected(index: int) -> void:
+    _choice_overlay.hide_choices()
+    if index == 0:
+        var record := _legacy_record_for_player()
+        if not record.is_empty():
+            game_state.set_legacy_boss(record)
+    else:
+        game_state.clear_legacy_boss()
+    _pending_choice_mode = "outcome"
+    _pending_choice_options = []
+    end_screen.show_screen(_pending_end_victory, _pending_end_score, _score_details())
+
+func _score_details() -> Dictionary:
+    var setup: Dictionary = game_state.run_state.get("setup", {})
+    var key := "%s:%s:%s" % [str(setup.get("mode", "legacy")), str(setup.get("theme", "neutral")), str(setup.get("difficulty", "wanderer"))]
+    var best_scores: Dictionary = game_state.meta_state.get("best_scores", {})
+    var legacy: Dictionary = game_state.get_legacy_boss()
+    return {
+        "base_score": score_manager.get_base_score(),
+        "multipliers": score_manager.get_multiplier_breakdown(game_state.run_state),
+        "best_score": int(best_scores.get(key, 0)),
+        "legacy_boss": str(legacy.get("display_name", "")),
+        "run_history": game_state.meta_state.get("run_history", [])
+    }
+
+func _legacy_record_for_player() -> Dictionary:
+    var player: Unit = game_state.run_state.get("player", null) as Unit
+    if player == null:
+        return {}
+    var item_ids: Array = []
+    var school_counts: Dictionary = {}
+    for item in player_items:
+        var item_data: Dictionary = item
+        item_ids.append(str(item_data.get("id", "")))
+        var school: String = str(item_data.get("school", ""))
+        if not school.is_empty():
+            school_counts[school] = int(school_counts.get(school, 0)) + 1
+    var meta: Dictionary = game_state.meta_state
+    return {
+        "piece_type": player.piece_id,
+        "items": item_ids,
+        "display_name": "%s, Carried Forward" % player.display_name,
+        "run_origin": int(meta.get("run_count", 0)),
+        "kills": player.kills,
+        "evolution_path": game_state.run_state.get("evolution_path", [player.piece_id]),
+        "school_counts": school_counts
+    }
 
 func _get_or_create_player() -> Unit:
     var player: Unit = game_state.run_state.get("player", null) as Unit
@@ -1739,7 +2422,14 @@ func _get_or_create_player() -> Unit:
     player.init_from_piece("pawn", pieces.get("pawn", {}))
     _refresh_player_build(player)
     game_state.run_state["player"] = player
+    game_state.run_state["evolution_path"] = [player.piece_id]
     return player
+
+func _record_evolution_step(piece_id: String) -> void:
+    var path: Array = game_state.run_state.get("evolution_path", [])
+    if path.is_empty() or str(path[path.size() - 1]) != piece_id:
+        path.append(piece_id)
+    game_state.run_state["evolution_path"] = path
 
 func _spawn_player(board: BoardData) -> Vector2i:
     var encounters: Dictionary = DataLoader.load_config("encounters")
@@ -1773,6 +2463,7 @@ func _spawn_enemies(board: BoardData, encounter_cfg: Dictionary) -> Array:
         var unit := Unit.new()
         unit.init_from_piece(piece_id, pieces.get(piece_id, {}))
         unit.is_boss = bool(encounter_cfg.get("is_boss", false))
+        _apply_enemy_run_bonuses(unit, encounter_cfg)
         _apply_enemy_role(unit, _forced_role_or_default(""))
         if elite_items > 0 and i == 0:
             _equip_enemy_items(unit, elite_items)
@@ -1794,6 +2485,7 @@ func _spawn_template_enemies(board: BoardData, template: Dictionary, encounter_c
         var unit := Unit.new()
         unit.init_from_piece(piece_id, pieces.get(piece_id, {}))
         unit.is_boss = bool(encounter_cfg.get("is_boss", false)) or piece_id == "king"
+        _apply_enemy_run_bonuses(unit, encounter_cfg)
         _apply_enemy_role(unit, _forced_role_or_default(str(spec.get("role", ""))))
         var item_ids: Array = spec.get("items", [])
         if not item_ids.is_empty():
@@ -1811,6 +2503,7 @@ func _spawn_template_enemies(board: BoardData, template: Dictionary, encounter_c
         var piece_id: String = str(fallback_types[rng.randi_range(0, fallback_types.size() - 1)])
         var unit := Unit.new()
         unit.init_from_piece(piece_id, pieces.get(piece_id, {}))
+        _apply_enemy_run_bonuses(unit, encounter_cfg)
         _apply_enemy_role(unit, _forced_role_or_default("pursuer"))
         var pos := _first_open_position(board, "top_right", used_positions)
         if pos == Vector2i(-1, -1):
@@ -1819,6 +2512,94 @@ func _spawn_template_enemies(board: BoardData, template: Dictionary, encounter_c
         board.set_unit(pos, unit)
         enemies.append(unit)
     return enemies
+
+func _spawn_legacy_boss_if_needed(board: BoardData, encounter_cfg: Dictionary, enemies: Array) -> void:
+    if board == null or not bool(encounter_cfg.get("is_boss", false)):
+        return
+    var legacy: Dictionary = game_state.get_legacy_boss()
+    if legacy.is_empty():
+        return
+    var pieces: Dictionary = DataLoader.load_config("enemy_pieces")
+    var piece_id: String = str(legacy.get("piece_type", "pawn"))
+    if not pieces.has(piece_id):
+        return
+    var unit := Unit.new()
+    unit.init_from_piece(piece_id, pieces.get(piece_id, {}))
+    unit.display_name = str(legacy.get("display_name", unit.display_name))
+    unit.is_boss = true
+    _scale_legacy_boss(unit)
+    _equip_enemy_item_ids(unit, legacy.get("items", []))
+    var used: Dictionary = {}
+    for enemy in enemies:
+        var existing: Unit = enemy as Unit
+        if existing != null:
+            used[_pos_key(existing.position)] = true
+    var pos := _first_open_position(board, "top_right", used)
+    if pos == Vector2i(-1, -1):
+        return
+    board.set_unit(pos, unit)
+    enemies.append(unit)
+    append_log("%s waits beside the King." % unit.display_name)
+
+func _spawn_allies(board: BoardData) -> Array:
+    var allies: Array = []
+    if board == null:
+        return allies
+    var active: Array = game_state.run_state.get("active_allies", [])
+    if active.is_empty():
+        return allies
+    var ally_cfgs: Dictionary = DataLoader.load_config("ally_units")
+    var pieces: Dictionary = DataLoader.load_config("player_pieces")
+    var used: Dictionary = {}
+    var player: Unit = game_state.run_state.get("player", null) as Unit
+    if player != null:
+        used[_pos_key(player.position)] = true
+    for record_value in active:
+        if typeof(record_value) != TYPE_DICTIONARY:
+            continue
+        var record: Dictionary = record_value
+        var ally_id: String = str(record.get("id", ""))
+        var cfg: Dictionary = ally_cfgs.get(ally_id, {})
+        if cfg.is_empty():
+            continue
+        var piece_id: String = str(cfg.get("piece", "pawn"))
+        var unit := Unit.new()
+        unit.is_ally = true
+        unit.init_from_piece(piece_id, pieces.get(piece_id, {}))
+        unit.display_name = str(record.get("display_name", cfg.get("display_name", unit.display_name)))
+        unit.trigger_flags["ally_record_id"] = str(record.get("record_id", ""))
+        _apply_enemy_role(unit, str(cfg.get("role", "")))
+        _equip_enemy_item_ids(unit, cfg.get("items", []))
+        var saved_hp: int = int(record.get("current_hp", -1))
+        if saved_hp > 0:
+            unit.hp = min(saved_hp, unit.max_hp)
+        var pos := _first_open_position(board, "bottom_left", used)
+        if pos == Vector2i(-1, -1):
+            continue
+        used[_pos_key(pos)] = true
+        board.set_unit(pos, unit)
+        allies.append(unit)
+        append_log("%s joins the board." % unit.display_name)
+    return allies
+
+func _scale_legacy_boss(unit: Unit) -> void:
+    var run_count: int = int(game_state.meta_state.get("run_count", 1))
+    var legacy_scale: int = clamp(run_count, 1, 6)
+    unit.base_hp = int(floor(unit.base_hp * (1.0 + 0.15 * float(legacy_scale))))
+    unit.base_atk = int(floor(unit.base_atk * (1.0 + 0.10 * float(legacy_scale))))
+    unit.base_def = int(floor(unit.base_def * (1.0 + 0.10 * float(legacy_scale))))
+    unit.apply_items(unit.items)
+    unit.hp = unit.max_hp
+    unit.ap = unit.max_ap
+
+func _apply_enemy_run_bonuses(unit: Unit, encounter_cfg: Dictionary) -> void:
+    if unit == null:
+        return
+    var bonus: Dictionary = encounter_cfg.get("enemy_stat_bonus", {})
+    if bonus.is_empty():
+        return
+    unit.run_stat_bonuses = _merge_stat_bonuses(unit.run_stat_bonuses, bonus)
+    unit.apply_items(unit.items)
 
 func _equip_enemy_items(unit: Unit, count: int) -> void:
     var items_cfg: Dictionary = DataLoader.load_config("items")
@@ -1853,7 +2634,7 @@ func _apply_enemy_role(unit: Unit, role_id: String) -> void:
     unit.role_id = role_id
     unit.role_name = str(role.get("display_name", role_id.capitalize()))
     var stats: Dictionary = role.get("stat_bonus", {})
-    unit.run_stat_bonuses = stats.duplicate(true)
+    unit.run_stat_bonuses = _merge_stat_bonuses(unit.run_stat_bonuses, stats)
     unit.apply_items(unit.items)
 
 func _forced_role_or_default(default_role: String) -> String:
@@ -1869,18 +2650,47 @@ func _player_has_item(item_id: String) -> bool:
     return false
 
 func _remove_dead_units() -> void:
+    var board: BoardData = game_state.run_state.get("board", null) as BoardData
     var enemies: Array = game_state.run_state.get("enemies", [])
     for i in range(enemies.size() - 1, -1, -1):
-        var enemy: Unit = enemies[i]
+        var enemy: Unit = enemies[i] as Unit
         if enemy == null or enemy.is_dead():
+            if board != null and enemy != null:
+                board.clear_unit(enemy.position)
             enemies.remove_at(i)
     game_state.run_state["enemies"] = enemies
+    var allies: Array = game_state.run_state.get("allies", [])
+    var fallen_records: Dictionary = {}
+    for i in range(allies.size() - 1, -1, -1):
+        var ally: Unit = allies[i] as Unit
+        if ally == null or ally.is_dead():
+            if ally != null:
+                fallen_records[str(ally.trigger_flags.get("ally_record_id", ""))] = ally.display_name
+                if board != null:
+                    board.clear_unit(ally.position)
+            allies.remove_at(i)
+    game_state.run_state["allies"] = allies
+    if fallen_records.is_empty():
+        return
+    var active: Array = game_state.run_state.get("active_allies", [])
+    for i in range(active.size() - 1, -1, -1):
+        if typeof(active[i]) != TYPE_DICTIONARY:
+            continue
+        var record: Dictionary = active[i]
+        var record_id: String = str(record.get("record_id", ""))
+        if fallen_records.has(record_id):
+            append_log("%s falls out of contract." % str(record.get("display_name", fallen_records[record_id])))
+            active.remove_at(i)
+    game_state.run_state["active_allies"] = active
 
 func _all_units() -> Array:
     var units: Array = []
     var player: Unit = game_state.run_state.get("player", null) as Unit
     if player != null:
         units.append(player)
+    for ally in game_state.run_state.get("allies", []):
+        if ally != null:
+            units.append(ally)
     var enemies: Array = game_state.run_state.get("enemies", [])
     for enemy in enemies:
         units.append(enemy)
@@ -1909,7 +2719,8 @@ func _maybe_mutate_board(board: BoardData) -> void:
     if board == null:
         return
     var encounters: Dictionary = DataLoader.load_config("encounters")
-    var interval: int = int(encounters.get("terrain_mutation_turns", 0))
+    var mechanic: Dictionary = _current_theme_cfg().get("theme_mechanic", {})
+    var interval: int = int(mechanic.get("mutation_interval_override", encounters.get("terrain_mutation_turns", 0)))
     if interval <= 0:
         return
     if _current_turn() % interval != 0:
@@ -1917,6 +2728,17 @@ func _maybe_mutate_board(board: BoardData) -> void:
     var pos: Vector2i = BoardGenerator.mutate_empty_tile(board, rng)
     if pos == Vector2i(-1, -1):
         return
+    var stat_bonus: Dictionary = mechanic.get("on_mutation_stat_bonus", {})
+    if not stat_bonus.is_empty():
+        var player: Unit = game_state.run_state.get("player", null) as Unit
+        if player != null:
+            player.trigger_stat_bonuses = _merge_stat_bonuses(player.trigger_stat_bonuses, stat_bonus)
+            _refresh_player_build(player)
+            stats_panel.update_unit(player)
+            board_view.show_float_text(player.position, "+ATK", Color(0.88, 0.72, 1.0))
+        var log_text: String = str(mechanic.get("log", ""))
+        if not log_text.is_empty():
+            append_log(log_text)
     board_view.play_mutation_flash(pos)
     append_log("The Plain shifts.")
 
@@ -1925,6 +2747,7 @@ func _refresh_tactical_hud() -> void:
         return
     var player: Unit = game_state.run_state.get("player", null) as Unit
     var enemies: Array = game_state.run_state.get("enemies", [])
+    var allies: Array = game_state.run_state.get("allies", [])
     var node: Dictionary = game_state.run_state.get("current_node", {})
     stats_panel.update_run_info(
         int(game_state.run_state.get("gold", 0)),
@@ -1933,7 +2756,7 @@ func _refresh_tactical_hud() -> void:
         str(node.get("label", ""))
     )
     _update_enemy_panel(player, enemies)
-    _update_turn_order(enemies)
+    _update_turn_order(enemies, allies)
     _update_items_panel(player)
     if tile_info_label.text.is_empty() or tile_info_label.text == "Tile: -":
         tile_info_label.text = "Tile: Hover the board."
@@ -2121,16 +2944,22 @@ func _role_detail(role_id: String) -> String:
         return ""
     return "%s: %s" % [str(role.get("display_name", role_id.capitalize())), str(role.get("summary", ""))]
 
-func _update_turn_order(enemies: Array) -> void:
-    if enemies.is_empty():
+func _update_turn_order(enemies: Array, allies: Array = []) -> void:
+    if enemies.is_empty() and allies.is_empty():
         turn_order_label.text = "Order: The Plain waits."
         return
-    var ordered: Array = enemies.duplicate()
-    ordered.sort_custom(Callable(self, "_sort_units_by_spd_desc"))
+    var ordered_allies: Array = allies.duplicate()
+    ordered_allies.sort_custom(Callable(self, "_sort_units_by_spd_desc"))
+    var ordered_enemies: Array = enemies.duplicate()
+    ordered_enemies.sort_custom(Callable(self, "_sort_units_by_spd_desc"))
     var names: Array = ["You"]
-    var limit: int = int(min(4, ordered.size()))
+    for i in range(int(min(2, ordered_allies.size()))):
+        var ally: Unit = ordered_allies[i] as Unit
+        if ally != null:
+            names.append("Ally: %s" % ally.display_name)
+    var limit: int = int(min(4, ordered_enemies.size()))
     for i in range(limit):
-        var enemy: Unit = ordered[i] as Unit
+        var enemy: Unit = ordered_enemies[i] as Unit
         if enemy != null:
             names.append(enemy.display_name)
     turn_order_label.text = "Order: %s" % _join_strings(names, " -> ")
@@ -2152,6 +2981,24 @@ func _update_items_panel(player: Unit) -> void:
     var pending_mutations: int = int(game_state.run_state.get("pending_board_mutations", 0))
     if pending_mutations > 0:
         run_lines.append("Owed shifts: %d" % pending_mutations)
+    var contracts: Array = game_state.run_state.get("active_contracts", [])
+    if not contracts.is_empty():
+        var contract_names: Array = []
+        for contract in contracts:
+            if typeof(contract) == TYPE_DICTIONARY:
+                var contract_entry: Dictionary = contract
+                contract_names.append("%s (%d)" % [str(contract_entry.get("label", "Contract")), int(contract_entry.get("duration", 1))])
+        if not contract_names.is_empty():
+            run_lines.append("Contracts: %s" % _join_strings(contract_names, ", "))
+    var active_allies: Array = game_state.run_state.get("active_allies", [])
+    if not active_allies.is_empty():
+        var ally_names: Array = []
+        for ally_record in active_allies:
+            if typeof(ally_record) == TYPE_DICTIONARY:
+                var ally_entry: Dictionary = ally_record
+                ally_names.append("%s (%d)" % [str(ally_entry.get("display_name", "Ally")), int(ally_entry.get("duration", 1))])
+        if not ally_names.is_empty():
+            run_lines.append("Allies: %s" % _join_strings(ally_names, ", "))
     if player == null or player.items.is_empty():
         run_lines.append("No relics carried.")
         items_list_label.text = _join_strings(run_lines, "\n")
@@ -2207,17 +3054,22 @@ func _trigger_summary(item: Dictionary) -> String:
             return ""
 
 func _nearest_enemy(player: Unit, enemies: Array) -> Unit:
+    return _nearest_target(player, enemies)
+
+func _nearest_target(unit: Unit, targets: Array) -> Unit:
     var best: Unit = null
     var best_dist := 999999
-    for enemy in enemies:
-        if enemy == null:
+    if unit == null:
+        return null
+    for target_value in targets:
+        if target_value == null:
             continue
-        var enemy_unit: Unit = enemy as Unit
-        if enemy_unit == null:
+        var target_unit: Unit = target_value as Unit
+        if target_unit == null or target_unit.is_dead():
             continue
-        var dist: int = abs(enemy_unit.position.x - player.position.x) + abs(enemy_unit.position.y - player.position.y)
+        var dist: int = abs(target_unit.position.x - unit.position.x) + abs(target_unit.position.y - unit.position.y)
         if dist < best_dist:
-            best = enemy_unit
+            best = target_unit
             best_dist = dist
     return best
 

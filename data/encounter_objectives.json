@@ -1,14 +1,19 @@
 {
   "objective_chance": {
-    "combat": 1.0,
+    "combat": 0.75,
     "elite": 1.0,
     "ambush": 1.0,
     "boss": 0.0
   },
+  "floor_chance_bonus": [
+    { "min_floor": 4, "bonus": 0.1 },
+    { "min_floor": 6, "bonus": 0.15 }
+  ],
   "types": {
     "cache": {
       "display_name": "Relic Cache",
       "summary": "A sealed cache waits off the safest line. Step on it before the board is cleared.",
+      "reward_preview": "8-14 gold and score",
       "marker": "$",
       "min_floor": 1,
       "weight": 8,
@@ -21,9 +26,10 @@
     "seal": {
       "display_name": "Seal",
       "summary": "Hold the marked square through the enemy answer to break the encounter.",
+      "reward_preview": "small gold, immediate clear",
       "marker": "O",
       "min_floor": 2,
-      "weight": 5,
+      "weight": 4,
       "clear_on_complete": true,
       "placement": "center",
       "hold_turns": 1,
@@ -34,9 +40,10 @@
     "escape": {
       "display_name": "Exit",
       "summary": "Reach the exit. Survival is enough here.",
+      "reward_preview": "escape clear",
       "marker": ">",
       "min_floor": 3,
-      "weight": 4,
+      "weight": 3,
       "clear_on_complete": true,
       "placement": "far_from_player",
       "reward_gold": [0, 4],

@@ -70,6 +70,100 @@
       }
     }
   ],
+  "shop_options": [
+    {
+      "label": "Buy a Shard",
+      "summary": "35 gold. Take a sharp permission.",
+      "effects": {
+        "cost_gold": 35,
+        "item_id": "shard_of_rank",
+        "score_events": ["item_pickup"],
+        "log": "The shard accepts your payment."
+      }
+    },
+    {
+      "label": "Buy a Ward",
+      "summary": "30 gold. Carry a defensive word.",
+      "effects": {
+        "cost_gold": 30,
+        "item_id": "ward_rune",
+        "score_events": ["item_pickup"],
+        "log": "The ward keeps its price."
+      }
+    },
+    {
+      "label": "Leave the Market",
+      "summary": "Keep your gold. The hands close.",
+      "effects": {
+        "log": "Nothing changes hands."
+      }
+    }
+  ],
+  "upgrade_options": [
+    {
+      "label": "Harden",
+      "summary": "25 gold. +1 DEF for this run.",
+      "effects": {
+        "cost_gold": 25,
+        "player_stat_bonus": { "def": 1 },
+        "score_events": ["perk_acquired"],
+        "log": "A small rule is hammered into you."
+      }
+    },
+    {
+      "label": "Sharpen",
+      "summary": "30 gold. +1 ATK for this run.",
+      "effects": {
+        "cost_gold": 30,
+        "player_stat_bonus": { "atk": 1 },
+        "score_events": ["perk_acquired"],
+        "log": "The edge learns your name."
+      }
+    },
+    {
+      "label": "Pass the Anvil",
+      "summary": "No cost. No mark deepens.",
+      "effects": {
+        "log": "The anvil cools without you."
+      }
+    }
+  ],
+  "ally_hire_options": [
+    {
+      "label": "Hire a Shield",
+      "summary": "40 gold. A warded pawn joins the next fights.",
+      "effects": {
+        "cost_gold": 40,
+        "ally_id": "shield_pawn",
+        "log": "A contract stands one square behind you."
+      }
+    },
+    {
+      "label": "Hire a Blade",
+      "summary": "45 gold. A bleeding knight joins the next fights.",
+      "effects": {
+        "cost_gold": 45,
+        "ally_id": "blade_knight",
+        "log": "A borrowed edge follows your file."
+      }
+    },
+    {
+      "label": "Hire a Bishop",
+      "summary": "55 gold. A quiet keeper joins the next fights.",
+      "effects": {
+        "cost_gold": 55,
+        "ally_id": "quiet_bishop",
+        "log": "A witness signs without looking up."
+      }
+    },
+    {
+      "label": "Refuse Contract",
+      "summary": "No cost. No one signs beside you.",
+      "effects": {
+        "log": "The banner lowers."
+      }
+    }
+  ],
   "story_events": [
     {
       "title": "A Pawn Without a File",

@@ -8,6 +8,13 @@ func _ready() -> void:
 	add_child(main)
 	await get_tree().process_frame
 	await get_tree().process_frame
+	main._on_choice_selected(0)
+	await get_tree().process_frame
+	main._on_choice_selected(0)
+	await get_tree().process_frame
+	main._on_choice_selected(0)
+	await get_tree().process_frame
+	await get_tree().process_frame
 
 	var path_graph: Dictionary = main.game_state.run_state.get("path_graph", {})
 	var available: Array = path_graph.get("available", [])

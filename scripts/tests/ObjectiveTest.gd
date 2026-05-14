@@ -10,6 +10,9 @@ func _ready() -> void:
 
 func _test_objective_config() -> void:
     var cfg: Dictionary = DataLoader.load_config("encounter_objectives")
+    var chance: Dictionary = cfg.get("objective_chance", {})
+    if float(chance.get("combat", 0.0)) <= 0.0 or float(chance.get("combat", 0.0)) > 1.0:
+        push_error("ObjectiveTest failed: combat objective chance should be within 0-1")
     var types: Dictionary = cfg.get("types", {})
     for objective_id in ["cache", "seal", "escape"]:
         if not types.has(objective_id):
@@ -22,6 +25,8 @@ func _test_objective_config() -> void:
             push_error("ObjectiveTest failed: %s needs placement" % objective_id)
         if not objective.has("reward_gold"):
             push_error("ObjectiveTest failed: %s needs reward_gold" % objective_id)
+        if str(objective.get("reward_preview", "")).is_empty():
+            push_error("ObjectiveTest failed: %s needs reward_preview" % objective_id)
 
 func _test_tile_objective_reset() -> void:
     var tile := Tile.new()

@@ -1,0 +1,131 @@
+{
+  "default_setup": {
+    "mode": "legacy",
+    "theme": "neutral",
+    "difficulty": "wanderer"
+  },
+  "modes": {
+    "legacy": {
+      "display_name": "Legacy Run",
+      "summary": "Story nodes remain on the path. Choices are remembered."
+    },
+    "themed": {
+      "display_name": "Themed Run",
+      "summary": "Story nodes become stranger event pressure. Score is kept by theme."
+    }
+  },
+  "difficulties": {
+    "wanderer": {
+      "display_name": "Wanderer",
+      "summary": "The Plain watches before it presses.",
+      "score_multiplier": 1.0,
+      "enemy_count_bonus": 0,
+      "enemy_stat_bonus": {}
+    },
+    "exile": {
+      "display_name": "Exile",
+      "summary": "The law notices sooner.",
+      "score_multiplier": 1.5,
+      "enemy_count_bonus": 0,
+      "enemy_stat_bonus": { "hp": 2, "atk": 1 }
+    },
+    "unranked": {
+      "display_name": "Unranked",
+      "summary": "Every square takes offense.",
+      "score_multiplier": 2.0,
+      "enemy_count_bonus": 1,
+      "enemy_stat_bonus": { "hp": 4, "atk": 1, "def": 1 }
+    }
+  },
+  "themes": {
+    "neutral": {
+      "display_name": "Neutral",
+      "summary": "The Plain as it first pretends to be.",
+      "score_multiplier": 1.0,
+      "enemy_pool_bonus": [],
+      "terrain_marks": [],
+      "draft_bias": [],
+      "theme_mechanic": {}
+    },
+    "thunder": {
+      "display_name": "Thunder",
+      "summary": "High ground, fog, and decisions that arrive too quickly.",
+      "score_multiplier": 1.2,
+      "enemy_pool_bonus": ["knight"],
+      "terrain_marks": [
+        { "terrain": "elevated", "quadrant": "center", "count": 2 },
+        { "terrain": "fog", "quadrant": "top_right", "count": 1 }
+      ],
+      "draft_bias": ["ashen_veil", "rank_echo"],
+      "theme_mechanic": {
+        "kill_counter_label": "charge",
+        "on_kill_every": 3,
+        "aoe_damage": 2,
+        "aoe_radius": 1,
+        "log": "The charge jumps rank to rank."
+      }
+    },
+    "volcanic": {
+      "display_name": "Volcanic",
+      "summary": "The board burns where obedience has gone dry.",
+      "score_multiplier": 1.3,
+      "enemy_pool_bonus": ["rook"],
+      "terrain_marks": [
+        { "terrain": "fire", "quadrant": "center", "count": 3 },
+        { "terrain": "cursed", "quadrant": "top_right", "count": 1 }
+      ],
+      "draft_bias": ["shard_of_rank", "bleeders_mark"],
+      "theme_mechanic": {
+        "terrain_pulse_interval": 5,
+        "terrain_pulse": { "terrain": "fire", "quadrant": "center", "count": 2 },
+        "log": "Heat opens under the file."
+      }
+    },
+    "ocean": {
+      "display_name": "Ocean",
+      "summary": "The files do not stay straight.",
+      "score_multiplier": 1.2,
+      "enemy_pool_bonus": ["bishop"],
+      "terrain_marks": [
+        { "terrain": "blessed", "quadrant": "bottom_left", "count": 2 },
+        { "terrain": "elevated", "quadrant": "center", "count": 1 }
+      ],
+      "draft_bias": ["mending_word", "iron_chain"],
+      "theme_mechanic": {
+        "objective_gold_bonus": 4,
+        "log": "The loose file pays in small recoveries."
+      }
+    },
+    "frost": {
+      "display_name": "Frost",
+      "summary": "Mercy hardens into geometry.",
+      "score_multiplier": 1.3,
+      "enemy_pool_bonus": ["bishop", "rook"],
+      "terrain_marks": [
+        { "terrain": "blessed", "quadrant": "center", "count": 2 },
+        { "terrain": "rock", "quadrant": "center", "count": 1 }
+      ],
+      "draft_bias": ["ward_rune", "barricade"],
+      "theme_mechanic": {
+        "on_kill_terrain": "rock",
+        "on_kill_terrain_log": "The fallen square hardens over."
+      }
+    },
+    "void": {
+      "display_name": "Void",
+      "summary": "The board forgets the difference between rule and wound.",
+      "score_multiplier": 1.5,
+      "enemy_pool_bonus": ["queen"],
+      "terrain_marks": [
+        { "terrain": "cursed", "quadrant": "center", "count": 3 },
+        { "terrain": "fog", "quadrant": "center", "count": 2 }
+      ],
+      "draft_bias": ["hollow_crown", "grave_weight"],
+      "theme_mechanic": {
+        "mutation_interval_override": 3,
+        "on_mutation_stat_bonus": { "atk": 1 },
+        "log": "The mutation leaves a little violence behind."
+      }
+    }
+  }
+}

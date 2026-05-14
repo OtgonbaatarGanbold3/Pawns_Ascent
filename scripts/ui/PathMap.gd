@@ -20,10 +20,11 @@ func _ready() -> void:
     title_label.add_theme_font_size_override("font_size", 28)
     subtitle_label.add_theme_font_size_override("font_size", 16)
     detail_label.add_theme_font_size_override("font_size", 15)
+    title_label.clip_text = true
     subtitle_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
     nodes_row.add_theme_constant_override("separation", 14)
-    panel.add_theme_stylebox_override("panel", PawnUITheme.make_panel_style(Color(0.045, 0.052, 0.06, 0.98), Color(0.36, 0.42, 0.48, 1.0), 18))
+    panel.add_theme_stylebox_override("panel", PawnUITheme.make_panel_style(Color(0.045, 0.052, 0.06, 0.98), Color(0.38, 0.44, 0.49, 1.0), 18, 10, 2))
     resized.connect(_on_resized)
     visible = false
 
@@ -40,16 +41,17 @@ func hide_path() -> void:
 func _on_resized() -> void:
     if visible:
         _center_panel()
+        _rebuild_nodes()
 
 func _center_panel() -> void:
     var viewport_size: Vector2 = get_viewport_rect().size
     var margin: float = clamp(viewport_size.x * 0.04, 24.0, 72.0)
     var panel_size := Vector2(
         min(980.0, viewport_size.x - margin * 2.0),
-        min(430.0, viewport_size.y - margin * 2.0)
+        min(500.0, viewport_size.y - margin * 2.0)
     )
-    panel_size.x = max(520.0, panel_size.x)
-    panel_size.y = max(320.0, panel_size.y)
+    panel_size.x = max(320.0, panel_size.x)
+    panel_size.y = max(340.0, panel_size.y)
     panel.size = panel_size
     panel.position = (viewport_size - panel_size) * 0.5
 
@@ -57,26 +59,41 @@ func _rebuild_nodes() -> void:
     for child in nodes_row.get_children():
         child.queue_free()
 
-    title_label.text = str(_path_graph.get("zone_name", "The Outer Plain"))
-    subtitle_label.text = "Choose the next square. The unchosen paths close behind you."
+    var context: Dictionary = _path_graph.get("run_context", {})
+    title_label.text = "%s - %s" % [str(_path_graph.get("zone_name", "The Outer Plain")), str(context.get("theme", "Neutral"))]
+    subtitle_label.text = _context_subtitle(context)
     if _available.is_empty():
         detail_label.text = "The path has ended."
         return
     detail_label.text = ""
 
     var nodes: Dictionary = _path_graph.get("nodes", {})
+    var button_size := _node_button_size()
     for node_id in _available:
         var node: Dictionary = nodes.get(node_id, {})
         var button := Button.new()
-        button.custom_minimum_size = Vector2(210, 180)
+        button.custom_minimum_size = button_size
         button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+        button.size_flags_vertical = Control.SIZE_EXPAND_FILL
         button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+        button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
         button.text = _format_node(node)
         button.tooltip_text = str(node.get("summary", ""))
         button.mouse_entered.connect(_show_node_detail.bind(node))
         button.pressed.connect(_on_node_pressed.bind(str(node_id)))
         _style_node_button(button, str(node.get("type", "combat")))
         nodes_row.add_child(button)
+
+func _node_button_size() -> Vector2:
+    var count: int = max(1, _available.size())
+    var gap: int = int(nodes_row.get_theme_constant("separation"))
+    var usable_width: float = max(260.0, panel.size.x - 54.0)
+    var width: float = floor((usable_width - float(max(0, count - 1) * gap)) / float(count))
+    width = clamp(width, 112.0, 240.0)
+    var height: float = 186.0
+    if width < 150.0:
+        height = 214.0
+    return Vector2(width, height)
 
 func _format_node(node: Dictionary) -> String:
     var preview: Dictionary = node.get("preview", {})
@@ -85,10 +102,13 @@ func _format_node(node: Dictionary) -> String:
         str(node.get("label", "Node")),
     ]
     lines.append("")
-    lines.append("Floor %d  Risk: %s" % [int(node.get("floor", 1)), str(preview.get("risk", "?"))])
+    lines.append("F%d  %s" % [int(node.get("floor", 1)), str(preview.get("risk", "?"))])
     var pattern: String = str(preview.get("pattern", ""))
     if not pattern.is_empty():
-        lines.append("%s (%d)" % [pattern, int(preview.get("enemy_count", 0))])
+        lines.append("%s x%d" % [pattern, int(preview.get("enemy_count", 0))])
+    var objective: String = str(preview.get("objective", ""))
+    if not objective.is_empty():
+        lines.append(objective)
     lines.append(str(preview.get("reward", node.get("summary", ""))))
     return _join_strings(lines, "\n")
 
@@ -103,6 +123,9 @@ func _show_node_detail(node: Dictionary) -> void:
     var pattern: String = str(preview.get("pattern", ""))
     if not pattern.is_empty():
         lines.append("Likely pattern: %s, %d enemies" % [pattern, int(preview.get("enemy_count", 0))])
+    var objective: String = str(preview.get("objective", ""))
+    if not objective.is_empty():
+        lines.append(objective)
     detail_label.text = _join_strings(lines, "\n")
 
 func _on_node_pressed(node_id: String) -> void:
@@ -127,12 +150,31 @@ func _style_node_button(button: Button, node_type: String) -> void:
         "boss":
             fill = Color(0.13, 0.105, 0.055)
             border = Color(0.62, 0.48, 0.2)
+        "shop", "upgrade", "ally_hire":
+            fill = Color(0.075, 0.105, 0.115)
+            border = Color(0.28, 0.5, 0.55)
     var normal := PawnUITheme.make_panel_style(fill, border, 12, 5, 2)
     button.add_theme_stylebox_override("normal", normal)
     var hover: StyleBoxFlat = normal.duplicate() as StyleBoxFlat
     hover.bg_color = fill.lightened(0.08)
     hover.border_color = border.lightened(0.2)
     button.add_theme_stylebox_override("hover", hover)
+
+func _context_subtitle(context: Dictionary) -> String:
+    var parts: Array = [
+        "%s %s" % [str(context.get("mode", "Legacy")), str(context.get("difficulty", "Wanderer"))],
+        "Gold %d" % int(context.get("gold", 0))
+    ]
+    var consequences: Array = context.get("consequences", [])
+    if not consequences.is_empty():
+        parts.append("Omen: %s" % _join_strings(consequences, ", "))
+    var contracts: Array = context.get("contracts", [])
+    if not contracts.is_empty():
+        parts.append("Contract: %s" % _join_strings(contracts, ", "))
+    var legacy: String = str(context.get("legacy_boss", ""))
+    if not legacy.is_empty():
+        parts.append("Legacy waits: %s" % legacy)
+    return _join_strings(parts, "  |  ")
 
 func _join_strings(values: Array, separator: String) -> String:
     var text := ""

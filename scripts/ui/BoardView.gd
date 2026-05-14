@@ -228,6 +228,28 @@ func play_attack_flash(pos: Vector2i) -> void:
 func play_mutation_flash(pos: Vector2i) -> void:
 	_spawn_tile_flash(pos, Color(0.62, 0.44, 0.92, 0.42), 0.55)
 
+func show_float_text(pos: Vector2i, text: String, color: Color = Color(0.9, 0.95, 1.0)) -> void:
+	if text.is_empty():
+		return
+	var rect := _get_tile_rect(pos)
+	if rect.size == Vector2.ZERO:
+		return
+	var label := Label.new()
+	label.text = text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", max(13, int(round(_font_size * 0.62))))
+	label.add_theme_color_override("font_color", color)
+	label.size = Vector2(rect.size.x * 1.8, rect.size.y)
+	label.position = rect.position + Vector2(-rect.size.x * 0.4, rect.size.y * 0.12)
+	label.modulate = Color(1, 1, 1, 1)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	effects_layer.add_child(label)
+
+	var tween := create_tween()
+	tween.tween_property(label, "position", label.position + Vector2(0, -_tile_size * 0.55), 0.65)
+	tween.parallel().tween_property(label, "modulate:a", 0.0, 0.65)
+	tween.finished.connect(label.queue_free)
+
 func show_damage_number(pos: Vector2i, amount: int) -> void:
 	if amount <= 0:
 		return
@@ -291,13 +313,14 @@ func _on_button_hovered(pos: Vector2i) -> void:
 	emit_signal("tile_hovered", pos)
 
 func _piece_label(unit: Unit) -> String:
+	var friendly := unit.is_player or unit.is_ally
 	var glyphs: Dictionary = {
-		"pawn": "♙" if unit.is_player else "♟",
-		"knight": "♘" if unit.is_player else "♞",
-		"bishop": "♗" if unit.is_player else "♝",
-		"rook": "♖" if unit.is_player else "♜",
-		"queen": "♕" if unit.is_player else "♛",
-		"king": "♔" if unit.is_player else "♚"
+		"pawn": "♙" if friendly else "♟",
+		"knight": "♘" if friendly else "♞",
+		"bishop": "♗" if friendly else "♝",
+		"rook": "♖" if friendly else "♜",
+		"queen": "♕" if friendly else "♛",
+		"king": "♔" if friendly else "♚"
 	}
 	return str(glyphs.get(unit.piece_id, unit.display_name.substr(0, 1).to_upper()))
 
@@ -405,6 +428,8 @@ func _get_tile_rect(pos: Vector2i) -> Rect2:
 func _piece_color(unit: Unit) -> Color:
 	if unit.is_player:
 		return Color(0.4, 0.9, 1.0)
+	if unit.is_ally:
+		return Color(0.58, 1.0, 0.64)
 	if unit.is_boss:
 		return Color(1.0, 0.8, 0.35)
 	return Color(1.0, 0.45, 0.4)

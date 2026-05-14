@@ -26,6 +26,8 @@ static var _paths := {
     "run_pacing": "res://data/run_pacing.json",
     "item_pools": "res://data/item_pools.json",
     "simultaneous_movement": "res://data/simultaneous_movement.json",
+    "run_themes": "res://data/run_themes.json",
+    "ally_units": "res://data/ally_units.json",
 }
 
 static func load_config(config_name: String) -> Variant:
