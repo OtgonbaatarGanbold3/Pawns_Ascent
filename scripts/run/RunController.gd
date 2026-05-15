@@ -404,6 +404,11 @@ func _show_run_setup_mode() -> void:
     _pending_run_setup = cfg.get("default_setup", {}).duplicate(true)
     _pending_choice_mode = "setup_mode"
     _pending_choice_options = _config_choice_options(cfg.get("modes", {}), "mode")
+    _pending_choice_options.append({
+        "label": "Combat Lab",
+        "summary": "Open a clean 10x10 test board for relic, skill, and damage checks.",
+        "action": "combat_lab"
+    })
     _choice_overlay.show_choices(
         "Choose the Run",
         "The first square waits to learn what kind of law you will enter.",
@@ -446,6 +451,12 @@ func _on_setup_choice_selected(index: int) -> void:
     if index < 0 or index >= _pending_choice_options.size():
         return
     var option: Dictionary = _pending_choice_options[index]
+    if str(option.get("action", "")) == "combat_lab":
+        _choice_overlay.hide_choices()
+        _pending_choice_options = []
+        _pending_choice_mode = "outcome"
+        get_tree().change_scene_to_file("res://scenes/tests/CombatLab.tscn")
+        return
     var key: String = str(option.get("value_key", ""))
     if not key.is_empty():
         _pending_run_setup[key] = str(option.get("value", ""))

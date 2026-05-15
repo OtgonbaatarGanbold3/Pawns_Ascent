@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 EventBus="*res://scripts/autoload/EventBus.gd"
 GameState="*res://scripts/autoload/GameState.gd"
 ScoreManager="*res://scripts/autoload/ScoreManager.gd"
+MCPRuntime="*uid://d02k5uccbvc31"
 
 [display]
 
@@ -28,6 +29,10 @@ window/size/viewport_height=1050
 window/size/mode="fullscreen"
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg")
 
 [physics]
 

@@ -1,0 +1,113 @@
+[gd_scene format=3 uid="uid://dsnn4qiilmjm3"]
+
+[ext_resource type="Script" uid="uid://6fv425kcftu" path="res://scripts/tests/CombatLab.gd" id="1_px1gk"]
+[ext_resource type="Script" uid="uid://bjq6rttgmvv33" path="res://scripts/ui/BoardView.gd" id="2_u1ufi"]
+
+[node name="CombatLab" type="Control" unique_id=493546546]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_px1gk")
+
+[node name="Background" type="ColorRect" parent="." unique_id=1974445222]
+layout_mode = 0
+color = Color(0.025, 0.029, 0.034, 1)
+
+[node name="Root" type="HBoxContainer" parent="." unique_id=1513581890]
+layout_mode = 0
+offset_left = 18.0
+offset_top = 18.0
+offset_right = -18.0
+offset_bottom = -18.0
+
+[node name="BoardColumn" type="VBoxContainer" parent="Root" unique_id=436057367]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Title" type="Label" parent="Root/BoardColumn" unique_id=527485223]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Combat Lab"
+
+[node name="BoardFrame" type="PanelContainer" parent="Root/BoardColumn" unique_id=401433318]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="BoardView" type="Control" parent="Root/BoardColumn/BoardFrame" unique_id=391694192]
+layout_mode = 2
+script = ExtResource("2_u1ufi")
+
+[node name="Grid" type="GridContainer" parent="Root/BoardColumn/BoardFrame/BoardView" unique_id=474835604]
+layout_mode = 0
+columns = 10
+
+[node name="Effects" type="Control" parent="Root/BoardColumn/BoardFrame/BoardView" unique_id=867632501]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Log" type="RichTextLabel" parent="Root/BoardColumn" unique_id=237277895]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+scroll_following = true
+
+[node name="SidePanel" type="PanelContainer" parent="Root" unique_id=1065561472]
+custom_minimum_size = Vector2(370, 0)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Scroll" type="ScrollContainer" parent="Root/SidePanel" unique_id=1747076651]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Controls" type="VBoxContainer" parent="Root/SidePanel/Scroll" unique_id=1144297653]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="StatsHeader" type="Label" parent="Root/SidePanel/Scroll/Controls" unique_id=952179264]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Status"
+
+[node name="StatsLabel" type="Label" parent="Root/SidePanel/Scroll/Controls" unique_id=1873598088]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="UnitHeader" type="Label" parent="Root/SidePanel/Scroll/Controls" unique_id=1830340853]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Units"
+
+[node name="UnitGrid" type="GridContainer" parent="Root/SidePanel/Scroll/Controls" unique_id=1493025766]
+layout_mode = 2
+columns = 2
+
+[node name="ItemHeader" type="Label" parent="Root/SidePanel/Scroll/Controls" unique_id=2051710898]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Items"
+
+[node name="ItemGrid" type="GridContainer" parent="Root/SidePanel/Scroll/Controls" unique_id=1738417011]
+layout_mode = 2
+
+[node name="SkillHeader" type="Label" parent="Root/SidePanel/Scroll/Controls" unique_id=522182075]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Skills"
+
+[node name="SkillGrid" type="GridContainer" parent="Root/SidePanel/Scroll/Controls" unique_id=771994673]
+layout_mode = 2
+
+[node name="ClearItemsButton" type="Button" parent="Root/SidePanel/Scroll/Controls" unique_id=1996940452]
+layout_mode = 2
+text = "Clear Items"
+
+[node name="ResetButton" type="Button" parent="Root/SidePanel/Scroll/Controls" unique_id=2119193851]
+layout_mode = 2
+text = "Reset Lab"

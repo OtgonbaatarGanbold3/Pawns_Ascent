@@ -21,6 +21,9 @@ var _font_size := 26
 var _anim_time := 0.0
 var _repaint_accum := 0.0
 var _moving_piece_keys: Dictionary = {}
+var _status_icon_nodes: Dictionary = {}
+var _terrain_overlay_nodes: Dictionary = {}
+var _unit_state_nodes: Dictionary = {}
 
 func _ready() -> void:
 	effects_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -41,6 +44,7 @@ func build_board(new_board: BoardData) -> void:
 	for child in grid.get_children():
 		child.queue_free()
 	buttons.clear()
+	_clear_persistent_overlay_nodes()
 	move_highlights.clear()
 	attack_highlights.clear()
 	enemy_intent_highlights.clear()
@@ -136,6 +140,9 @@ func _repaint_tiles() -> void:
 				button.text = _piece_label(tile.piece)
 				var font_color := _piece_color(tile.piece)
 				button.add_theme_color_override("font_color", font_color)
+	_refresh_status_icons()
+	_refresh_terrain_overlays()
+	_refresh_unit_state_indicators()
 
 func show_highlights(moves: Array, attacks: Array = [], selected_pos: Vector2i = Vector2i(-999, -999)) -> void:
 	move_highlights.clear()
@@ -224,9 +231,113 @@ func animate_unit_move(from_pos: Vector2i, to_pos: Vector2i, unit: Unit) -> void
 
 func play_attack_flash(pos: Vector2i) -> void:
 	_spawn_tile_flash(pos, Color(1.0, 0.35, 0.35, 0.45), 0.25)
+	_spawn_shape_burst(pos, "triangle", Color(0.95, 0.12, 0.1), 0.42, 1.0)
 
 func play_mutation_flash(pos: Vector2i) -> void:
 	_spawn_tile_flash(pos, Color(0.62, 0.44, 0.92, 0.42), 0.55)
+	_spawn_shape_burst(pos, "hexagon", Color(0.62, 0.44, 0.92), 0.75, 1.15)
+
+func show_status_effect(pos: Vector2i, status_id: String) -> void:
+	var color := _status_color(status_id)
+	_spawn_shape_burst(pos, _status_shape(status_id), color, 0.62, 1.05)
+	show_float_text(pos, _status_label(status_id), color.lightened(0.16))
+
+func show_trigger_effect(pos: Vector2i, trigger_id: String, school: String = "") -> void:
+	var color := _school_color(school)
+	var shape := _trigger_shape(trigger_id)
+	_spawn_shape_burst(pos, shape, color, 0.58, 1.0)
+	var text := _trigger_label(trigger_id)
+	if not text.is_empty():
+		show_float_text(pos, text, color.lightened(0.14))
+
+func show_skill_effect(pos: Vector2i, skill_id: String) -> void:
+	var color := _skill_color(skill_id)
+	var shape := _skill_shape(skill_id)
+	_spawn_shape_burst(pos, shape, color, 0.68, 1.12)
+	var text := _skill_label(skill_id)
+	if not text.is_empty():
+		show_float_text(pos, text, color.lightened(0.12))
+
+func show_evolution_effect(pos: Vector2i) -> void:
+	_spawn_board_wash(Color(0.02, 0.018, 0.015, 0.42), 0.8)
+	_spawn_tile_flash(pos, Color(0.95, 0.86, 0.42, 0.34), 0.95)
+	_spawn_shape_burst(pos, "circle", Color(0.95, 0.86, 0.42), 0.95, 1.42)
+	_spawn_shape_burst(pos, "diamond", Color(0.65, 0.88, 1.0), 0.8, 1.04)
+	show_float_text(pos, "Rank shifts", Color(1.0, 0.9, 0.55))
+
+func show_unit_state_effect(pos: Vector2i, state_id: String) -> void:
+	var color := _unit_state_color(state_id)
+	var shape := _unit_state_shape(state_id)
+	_spawn_shape_burst(pos, shape, color, 0.7, 1.1)
+	var text := _unit_state_label(state_id)
+	if not text.is_empty():
+		show_float_text(pos, text, color.lightened(0.16))
+
+func show_aura(center: Vector2i, radius: int, aura_id: String = "aura", duration: float = 1.1) -> void:
+	var color := _aura_color(aura_id)
+	for row in range(board.rows):
+		for col in range(board.cols):
+			var pos := Vector2i(col, row)
+			if abs(pos.x - center.x) + abs(pos.y - center.y) > radius:
+				continue
+			var rect := _get_tile_rect(pos)
+			if rect.size == Vector2.ZERO:
+				continue
+			var panel := Panel.new()
+			panel.position = rect.position + rect.size * 0.08
+			panel.size = rect.size * 0.84
+			panel.modulate = Color(1, 1, 1, 0.7 if pos == center else 0.34)
+			panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			panel.add_theme_stylebox_override("panel", _shape_style("aura", color))
+			effects_layer.add_child(panel)
+			var tween := create_tween()
+			tween.tween_property(panel, "modulate:a", 0.0, duration)
+			tween.finished.connect(panel.queue_free)
+	_spawn_shape_burst(center, "aura", color, duration, 1.35)
+
+func show_threat_line(from_pos: Vector2i, to_pos: Vector2i, duration: float = 0.7) -> void:
+	_spawn_line_between(from_pos, to_pos, Color(1.0, 0.16, 0.12, 0.86), max(3.0, _tile_size * 0.055), duration)
+	show_unit_state_effect(to_pos, "threatening")
+
+func show_skill_trail(from_pos: Vector2i, to_pos: Vector2i, skill_id: String = "mobility") -> void:
+	var color := _skill_color(skill_id)
+	_spawn_line_between(from_pos, to_pos, color, max(3.0, _tile_size * 0.045), 0.55)
+	show_skill_effect(to_pos, skill_id)
+
+func show_item_rarity_effect(pos: Vector2i, rarity: String, school: String = "") -> void:
+	var color := _school_color(school)
+	var shape := "diamond"
+	var burst_scale := 1.0
+	match rarity:
+		"common":
+			shape = _school_shape(school)
+			burst_scale = 0.86
+		"rare":
+			shape = _school_shape(school)
+			burst_scale = 1.02
+		"epic":
+			shape = "aura"
+			burst_scale = 1.18
+		"legendary":
+			shape = "circle"
+			burst_scale = 1.42
+		_:
+			shape = _school_shape(school)
+	_spawn_shape_burst(pos, shape, color, 0.8, burst_scale)
+	if rarity == "legendary":
+		_spawn_shape_burst(pos, "square", Color(1.0, 0.86, 0.35), 0.9, 1.18)
+	show_float_text(pos, rarity.capitalize(), color.lightened(0.14))
+
+func play_critical_hit(pos: Vector2i) -> void:
+	_spawn_tile_flash(pos, Color(1.0, 1.0, 1.0, 0.72), 0.18)
+	_spawn_shape_burst(pos, "triangle", Color(1.0, 0.96, 0.9), 0.5, 1.25)
+	_spawn_tile_shake(pos, Color(1.0, 0.25, 0.18, 0.26), 0.34)
+	show_float_text(pos, "Critical", Color(1.0, 0.95, 0.86))
+
+func play_kill_effect(pos: Vector2i) -> void:
+	_spawn_tile_flash(pos, Color(0.02, 0.018, 0.02, 0.62), 0.5)
+	_spawn_shape_burst(pos, "broken", Color(0.72, 0.18, 0.24), 0.72, 1.18)
+	show_float_text(pos, "Fallen", Color(0.92, 0.58, 0.62))
 
 func show_float_text(pos: Vector2i, text: String, color: Color = Color(0.9, 0.95, 1.0)) -> void:
 	if text.is_empty():
@@ -284,6 +395,7 @@ func set_tile_size(tile_size: int) -> void:
 	for button in buttons.values():
 		button.custom_minimum_size = Vector2(_tile_size, _tile_size)
 		button.add_theme_font_size_override("font_size", _font_size)
+	_refresh_status_icons()
 
 func get_board_pixel_size() -> Vector2:
 	if board == null:
@@ -401,6 +513,266 @@ func _apply_button_style(button: Button, fill_color: Color, border_color: Color)
 	pressed.bg_color = fill_color.darkened(0.08)
 	button.add_theme_stylebox_override("pressed", pressed)
 
+func _refresh_status_icons() -> void:
+	if board == null:
+		return
+	var needed: Dictionary = {}
+	for row in range(board.rows):
+		for col in range(board.cols):
+			var pos := Vector2i(col, row)
+			var tile: Tile = board.get_tile(pos)
+			if tile == null or tile.piece == null or tile.piece.status_effects.is_empty():
+				continue
+			var key := _key(pos)
+			needed[key] = true
+			var row_node: HBoxContainer = _status_icon_nodes.get(key, null)
+			if row_node == null:
+				row_node = HBoxContainer.new()
+				row_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				row_node.add_theme_constant_override("separation", max(1, int(round(_tile_size * 0.03))))
+				effects_layer.add_child(row_node)
+				_status_icon_nodes[key] = row_node
+			_update_status_icon_row(row_node, pos, tile.piece.status_effects)
+	var existing_keys: Array = _status_icon_nodes.keys()
+	for key in existing_keys:
+		if needed.has(key):
+			continue
+		var node: Node = _status_icon_nodes.get(key, null)
+		if node != null:
+			node.queue_free()
+		_status_icon_nodes.erase(key)
+
+func _refresh_terrain_overlays() -> void:
+	if board == null:
+		return
+	var needed: Dictionary = {}
+	for row in range(board.rows):
+		for col in range(board.cols):
+			var pos := Vector2i(col, row)
+			var tile: Tile = board.get_tile(pos)
+			if tile == null:
+				continue
+			var marker := _terrain_overlay_marker(tile)
+			if marker.is_empty():
+				continue
+			var key := _key(pos)
+			needed[key] = true
+			var label: Label = _terrain_overlay_nodes.get(key, null)
+			if label == null:
+				label = Label.new()
+				label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+				effects_layer.add_child(label)
+				_terrain_overlay_nodes[key] = label
+			_update_terrain_overlay(label, pos, tile, marker)
+	var existing_keys: Array = _terrain_overlay_nodes.keys()
+	for key in existing_keys:
+		if needed.has(key):
+			continue
+		var node: Node = _terrain_overlay_nodes.get(key, null)
+		if node != null:
+			node.queue_free()
+		_terrain_overlay_nodes.erase(key)
+
+func _update_terrain_overlay(label: Label, pos: Vector2i, tile: Tile, marker: String) -> void:
+	var rect := _get_tile_rect(pos)
+	if rect.size == Vector2.ZERO:
+		label.visible = false
+		return
+	label.visible = true
+	label.text = marker
+	label.position = rect.position
+	label.size = rect.size
+	label.modulate = Color(1, 1, 1, 0.34)
+	label.add_theme_font_size_override("font_size", max(12, int(round(_font_size * 0.68))))
+	label.add_theme_color_override("font_color", _terrain_overlay_color(tile.terrain_id))
+
+func _refresh_unit_state_indicators() -> void:
+	if board == null:
+		return
+	var needed: Dictionary = {}
+	for row in range(board.rows):
+		for col in range(board.cols):
+			var pos := Vector2i(col, row)
+			var tile: Tile = board.get_tile(pos)
+			if tile == null or tile.piece == null:
+				continue
+			var states := _unit_states(tile.piece)
+			if states.is_empty():
+				continue
+			var key := _key(pos)
+			needed[key] = true
+			var row_node: HBoxContainer = _unit_state_nodes.get(key, null)
+			if row_node == null:
+				row_node = HBoxContainer.new()
+				row_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				row_node.add_theme_constant_override("separation", max(1, int(round(_tile_size * 0.025))))
+				effects_layer.add_child(row_node)
+				_unit_state_nodes[key] = row_node
+			_update_unit_state_row(row_node, pos, states)
+	var existing_keys: Array = _unit_state_nodes.keys()
+	for key in existing_keys:
+		if needed.has(key):
+			continue
+		var node: Node = _unit_state_nodes.get(key, null)
+		if node != null:
+			node.queue_free()
+		_unit_state_nodes.erase(key)
+
+func _update_unit_state_row(row_node: HBoxContainer, pos: Vector2i, states: Array[String]) -> void:
+	for child in row_node.get_children():
+		child.queue_free()
+	var rect := _get_tile_rect(pos)
+	if rect.size == Vector2.ZERO:
+		row_node.visible = false
+		return
+	row_node.visible = true
+	var icon_size: int = max(12, int(round(_tile_size * 0.2)))
+	row_node.position = rect.position + Vector2(rect.size.x * 0.06, rect.size.y * 0.72)
+	row_node.size = Vector2(rect.size.x * 0.88, icon_size + 2)
+	for state_id in states:
+		var label := Label.new()
+		label.text = _unit_state_icon_text(state_id)
+		label.tooltip_text = _unit_state_label(state_id)
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.custom_minimum_size = Vector2(icon_size, icon_size)
+		label.add_theme_font_size_override("font_size", max(9, int(round(icon_size * 0.72))))
+		label.add_theme_color_override("font_color", _unit_state_color(state_id).lightened(0.28))
+		label.add_theme_stylebox_override("normal", _unit_state_icon_style(state_id))
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row_node.add_child(label)
+
+func _unit_state_icon_style(state_id: String) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	var color := _unit_state_color(state_id)
+	style.bg_color = Color(color.r, color.g, color.b, 0.16)
+	style.border_color = Color(color.r, color.g, color.b, 0.82)
+	style.set_border_width_all(max(1, int(round(_tile_size * 0.016))))
+	var radius: int = max(2, int(round(_tile_size * 0.05)))
+	if state_id == "ready" or state_id == "boss":
+		radius = max(8, int(round(_tile_size * 0.12)))
+	style.corner_radius_top_left = radius
+	style.corner_radius_top_right = radius
+	style.corner_radius_bottom_left = radius
+	style.corner_radius_bottom_right = radius
+	return style
+
+func _clear_persistent_overlay_nodes() -> void:
+	for dict in [_status_icon_nodes, _terrain_overlay_nodes, _unit_state_nodes]:
+		for node in dict.values():
+			if node != null:
+				node.queue_free()
+		dict.clear()
+
+func _update_status_icon_row(row_node: HBoxContainer, pos: Vector2i, statuses: Dictionary) -> void:
+	for child in row_node.get_children():
+		child.queue_free()
+	var rect := _get_tile_rect(pos)
+	if rect.size == Vector2.ZERO:
+		row_node.visible = false
+		return
+	row_node.visible = true
+	var icon_size: int = max(14, int(round(_tile_size * 0.24)))
+	row_node.position = rect.position + Vector2(rect.size.x * 0.06, rect.size.y * 0.06)
+	row_node.size = Vector2(rect.size.x * 0.88, icon_size + 2)
+	for status_id in statuses.keys():
+		var label := Label.new()
+		label.text = _status_icon_text(str(status_id))
+		label.tooltip_text = _status_tooltip(str(status_id), statuses.get(status_id, {}))
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.custom_minimum_size = Vector2(icon_size, icon_size)
+		label.add_theme_font_size_override("font_size", max(10, int(round(icon_size * 0.72))))
+		label.add_theme_color_override("font_color", _status_color(str(status_id)).lightened(0.32))
+		label.add_theme_stylebox_override("normal", _status_icon_style(str(status_id)))
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row_node.add_child(label)
+
+func _status_icon_style(status_id: String) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	var color := _status_color(status_id)
+	style.bg_color = color.darkened(0.55)
+	style.border_color = color.lightened(0.22)
+	style.set_border_width_all(max(1, int(round(_tile_size * 0.018))))
+	var radius: int = max(2, int(round(_tile_size * 0.04)))
+	if _status_shape(status_id) == "circle":
+		radius = max(8, int(round(_tile_size * 0.12)))
+	style.corner_radius_top_left = radius
+	style.corner_radius_top_right = radius
+	style.corner_radius_bottom_left = radius
+	style.corner_radius_bottom_right = radius
+	return style
+
+func _spawn_shape_burst(pos: Vector2i, shape: String, color: Color, duration: float, burst_scale: float) -> void:
+	var rect := _get_tile_rect(pos)
+	if rect.size == Vector2.ZERO:
+		return
+	var panel := Panel.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var start_size := rect.size * 0.48 * burst_scale
+	panel.size = start_size
+	panel.position = rect.position + (rect.size - panel.size) * 0.5
+	panel.modulate = Color(1, 1, 1, 0.9)
+	panel.add_theme_stylebox_override("panel", _shape_style(shape, color))
+	effects_layer.add_child(panel)
+
+	var label := Label.new()
+	label.text = _shape_text(shape)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.size = panel.size
+	label.add_theme_font_size_override("font_size", max(16, int(round(_font_size * 0.82))))
+	label.add_theme_color_override("font_color", color.lightened(0.28))
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(label)
+
+	var end_size := rect.size * 1.05 * burst_scale
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(panel, "size", end_size, duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(panel, "position", rect.position + (rect.size - end_size) * 0.5, duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(panel, "modulate:a", 0.0, duration)
+	tween.chain().tween_callback(panel.queue_free)
+
+func _shape_style(shape: String, color: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(color.r, color.g, color.b, 0.08)
+	style.border_color = Color(color.r, color.g, color.b, 0.85)
+	style.set_border_width_all(max(2, int(round(_tile_size * 0.035))))
+	var radius: int = 4
+	if shape == "circle" or shape == "aura":
+		radius = max(12, int(round(_tile_size * 0.18)))
+	elif shape == "diamond":
+		radius = 2
+	elif shape == "broken":
+		radius = 0
+	style.corner_radius_top_left = radius
+	style.corner_radius_top_right = radius
+	style.corner_radius_bottom_left = radius
+	style.corner_radius_bottom_right = radius
+	return style
+
+func _shape_text(shape: String) -> String:
+	match shape:
+		"circle":
+			return "o"
+		"triangle":
+			return "^"
+		"square":
+			return "#"
+		"diamond":
+			return "<>"
+		"hexagon":
+			return "H"
+		"broken":
+			return "//"
+		"aura":
+			return "()"
+		_:
+			return "*"
+
 func _spawn_tile_flash(pos: Vector2i, color: Color, duration: float) -> void:
 	var rect := _get_tile_rect(pos)
 	if rect.size == Vector2.ZERO:
@@ -415,6 +787,55 @@ func _spawn_tile_flash(pos: Vector2i, color: Color, duration: float) -> void:
 	var tween := create_tween()
 	tween.tween_property(flash, "modulate:a", 0.0, duration)
 	tween.finished.connect(flash.queue_free)
+
+func _spawn_board_wash(color: Color, duration: float) -> void:
+	var wash := ColorRect.new()
+	wash.color = color
+	wash.size = get_board_pixel_size()
+	wash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	effects_layer.add_child(wash)
+	var tween := create_tween()
+	tween.tween_property(wash, "modulate:a", 0.0, duration)
+	tween.finished.connect(wash.queue_free)
+
+func _spawn_tile_shake(pos: Vector2i, color: Color, duration: float) -> void:
+	var rect := _get_tile_rect(pos)
+	if rect.size == Vector2.ZERO:
+		return
+	var panel := ColorRect.new()
+	panel.color = color
+	panel.position = rect.position
+	panel.size = rect.size
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	effects_layer.add_child(panel)
+	var tween := create_tween()
+	tween.tween_property(panel, "position", rect.position + Vector2(_tile_size * 0.04, 0), duration * 0.22)
+	tween.tween_property(panel, "position", rect.position + Vector2(-_tile_size * 0.04, 0), duration * 0.22)
+	tween.tween_property(panel, "position", rect.position, duration * 0.18)
+	tween.parallel().tween_property(panel, "modulate:a", 0.0, duration)
+	tween.finished.connect(panel.queue_free)
+
+func _spawn_line_between(from_pos: Vector2i, to_pos: Vector2i, color: Color, thickness: float, duration: float) -> void:
+	var from_rect := _get_tile_rect(from_pos)
+	var to_rect := _get_tile_rect(to_pos)
+	if from_rect.size == Vector2.ZERO or to_rect.size == Vector2.ZERO:
+		return
+	var start := from_rect.position + from_rect.size * 0.5
+	var end := to_rect.position + to_rect.size * 0.5
+	var delta := end - start
+	if delta.length() <= 1.0:
+		return
+	var line := ColorRect.new()
+	line.color = color
+	line.position = start
+	line.size = Vector2(delta.length(), thickness)
+	line.pivot_offset = Vector2(0, thickness * 0.5)
+	line.rotation = delta.angle()
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	effects_layer.add_child(line)
+	var tween := create_tween()
+	tween.tween_property(line, "modulate:a", 0.0, duration)
+	tween.finished.connect(line.queue_free)
 
 func _get_tile_rect(pos: Vector2i) -> Rect2:
 	var button: Button = buttons.get(_key(pos), null)
@@ -445,7 +866,331 @@ func _tile_tooltip(tile: Tile) -> String:
 	if tile.piece != null:
 		text += "\nUnit: %s" % tile.piece.display_name
 		text += "\nHP: %d/%d" % [tile.piece.hp, tile.piece.max_hp]
+		if not tile.piece.status_effects.is_empty():
+			text += "\nStatuses: %s" % _status_list_text(tile.piece.status_effects)
+		var states := _unit_states(tile.piece)
+		if not states.is_empty():
+			var state_labels: Array[String] = []
+			for state_id in states:
+				state_labels.append(_unit_state_label(state_id))
+			text += "\nState: %s" % ", ".join(state_labels)
 	return text
+
+func _terrain_overlay_marker(tile: Tile) -> String:
+	if tile == null:
+		return ""
+	match tile.terrain_id:
+		"elevated":
+			return "="
+		"blessed":
+			return "o"
+		"fire":
+			return "^"
+		"cursed":
+			return "?"
+		"void":
+			return "//"
+		"fog":
+			return "~"
+		_:
+			return ""
+
+func _terrain_overlay_color(terrain_id: String) -> Color:
+	match terrain_id:
+		"elevated":
+			return Color(0.76, 0.82, 1.0)
+		"blessed":
+			return Color(0.76, 1.0, 0.76)
+		"fire":
+			return Color(1.0, 0.55, 0.22)
+		"cursed":
+			return Color(0.58, 0.34, 0.76)
+		"void":
+			return Color(0.7, 0.45, 1.0)
+		"fog":
+			return Color(0.68, 0.78, 0.86)
+		_:
+			return Color(0.8, 0.84, 0.86)
+
+func _unit_states(unit: Unit) -> Array[String]:
+	var states: Array[String] = []
+	if unit == null:
+		return states
+	if unit.ap > 0:
+		states.append("ready")
+	if unit.max_hp > 0 and float(unit.hp) / float(unit.max_hp) <= 0.3:
+		states.append("low_hp")
+	if unit.is_boss:
+		states.append("boss")
+	if unit.is_boss and unit.items.size() > 0:
+		states.append("legacy")
+	return states
+
+func _unit_state_icon_text(state_id: String) -> String:
+	match state_id:
+		"ready":
+			return "o"
+		"low_hp":
+			return "!"
+		"threatening":
+			return ">"
+		"boss":
+			return "^"
+		"legacy":
+			return "E"
+		_:
+			return "*"
+
+func _unit_state_label(state_id: String) -> String:
+	match state_id:
+		"ready":
+			return "Ready"
+		"low_hp":
+			return "Low HP"
+		"threatening":
+			return "Threat"
+		"boss":
+			return "Boss"
+		"legacy":
+			return "Legacy"
+		_:
+			return state_id.capitalize()
+
+func _unit_state_shape(state_id: String) -> String:
+	match state_id:
+		"ready":
+			return "circle"
+		"low_hp", "threatening":
+			return "triangle"
+		"boss", "legacy":
+			return "aura"
+		_:
+			return "diamond"
+
+func _unit_state_color(state_id: String) -> Color:
+	match state_id:
+		"ready":
+			return Color(0.72, 0.94, 1.0)
+		"low_hp":
+			return Color(1.0, 0.22, 0.18)
+		"threatening":
+			return Color(1.0, 0.16, 0.12)
+		"boss":
+			return Color(1.0, 0.78, 0.28)
+		"legacy":
+			return Color(0.72, 0.62, 1.0)
+		_:
+			return Color(0.86, 0.88, 0.9)
+
+func _aura_color(aura_id: String) -> Color:
+	match aura_id:
+		"fear":
+			return Color(0.7, 0.18, 0.24)
+		"heal":
+			return Color(0.78, 0.95, 0.62)
+		"corruption":
+			return Color(0.62, 0.34, 0.86)
+		_:
+			return Color(0.82, 0.72, 1.0)
+
+func _status_list_text(statuses: Dictionary) -> String:
+	var parts: Array[String] = []
+	for status_id in statuses.keys():
+		var data: Dictionary = statuses.get(status_id, {})
+		parts.append("%s %d" % [_status_label(str(status_id)), int(data.get("remaining", 0))])
+	return ", ".join(parts)
+
+func _status_tooltip(status_id: String, data: Dictionary) -> String:
+	var remaining: int = int(data.get("remaining", 0))
+	var damage: int = int(data.get("damage_per_tick", 0))
+	var text := "%s: %d turns" % [_status_label(status_id), remaining]
+	if damage > 0:
+		text += "\n%d damage per tick" % damage
+	var reduce: int = int(data.get("damage_reduce", 0))
+	if reduce > 0:
+		text += "\nReduces next hit by %d" % reduce
+	return text
+
+func _status_icon_text(status_id: String) -> String:
+	match status_id:
+		"bleed":
+			return "/"
+		"burn":
+			return "^"
+		"shielded":
+			return "#"
+		"empowered":
+			return "+"
+		"frozen":
+			return "*"
+		"shocked":
+			return "Z"
+		"cursed":
+			return "?"
+		"weakened":
+			return "v"
+		_:
+			return "!"
+
+func _status_label(status_id: String) -> String:
+	match status_id:
+		"bleed":
+			return "Bleed"
+		"burn":
+			return "Burn"
+		"shielded":
+			return "Shield"
+		"empowered":
+			return "Empower"
+		"frozen":
+			return "Frozen"
+		"shocked":
+			return "Shock"
+		"cursed":
+			return "Curse"
+		"weakened":
+			return "Weak"
+		_:
+			return status_id.capitalize()
+
+func _status_shape(status_id: String) -> String:
+	match status_id:
+		"shielded":
+			return "square"
+		"empowered":
+			return "circle"
+		"frozen", "shocked", "weakened":
+			return "diamond"
+		"cursed":
+			return "broken"
+		"burn", "bleed":
+			return "triangle"
+		_:
+			return "circle"
+
+func _status_color(status_id: String) -> Color:
+	match status_id:
+		"bleed":
+			return Color(0.92, 0.08, 0.08)
+		"burn":
+			return Color(1.0, 0.42, 0.08)
+		"shielded":
+			return Color(0.76, 0.86, 0.94)
+		"empowered":
+			return Color(0.95, 0.82, 0.34)
+		"frozen":
+			return Color(0.56, 0.84, 1.0)
+		"shocked":
+			return Color(0.34, 0.68, 1.0)
+		"cursed":
+			return Color(0.54, 0.3, 0.72)
+		"weakened":
+			return Color(0.5, 0.54, 0.58)
+		_:
+			return Color(0.86, 0.88, 0.9)
+
+func _school_color(school: String) -> Color:
+	match school:
+		"shadow":
+			return Color(0.75, 0.08, 0.12)
+		"holy":
+			return Color(0.95, 0.78, 0.34)
+		"siege":
+			return Color(0.64, 0.68, 0.66)
+		"void":
+			return Color(0.62, 0.34, 0.86)
+		_:
+			return Color(0.78, 0.86, 0.94)
+
+func _school_shape(school: String) -> String:
+	match school:
+		"shadow":
+			return "triangle"
+		"holy":
+			return "circle"
+		"siege":
+			return "square"
+		"void":
+			return "broken"
+		_:
+			return "diamond"
+
+func _trigger_shape(trigger_id: String) -> String:
+	match trigger_id:
+		"on_hit_bleed", "on_hit_knockback", "on_low_hp_buff":
+			return "triangle"
+		"on_kill_heal", "on_turn_ap":
+			return "circle"
+		"on_adj_defend":
+			return "square"
+		"on_move_extra":
+			return "diamond"
+		_:
+			return "diamond"
+
+func _trigger_label(trigger_id: String) -> String:
+	match trigger_id:
+		"on_hit_bleed":
+			return "Bleed"
+		"on_hit_knockback":
+			return "Impact"
+		"on_kill_heal":
+			return "Return"
+		"on_move_extra":
+			return "Move"
+		"on_turn_ap":
+			return "+AP"
+		"on_adj_defend":
+			return "Guard"
+		"on_low_hp_buff":
+			return "+ATK"
+		_:
+			return ""
+
+func _skill_shape(skill_id: String) -> String:
+	match skill_id:
+		"mobility":
+			return "diamond"
+		"impact":
+			return "triangle"
+		"summon":
+			return "circle"
+		"aura":
+			return "aura"
+		"mutation":
+			return "hexagon"
+		_:
+			return "diamond"
+
+func _skill_color(skill_id: String) -> Color:
+	match skill_id:
+		"mobility":
+			return Color(0.42, 0.74, 1.0)
+		"impact":
+			return Color(1.0, 0.32, 0.16)
+		"summon":
+			return Color(0.55, 0.42, 0.82)
+		"aura":
+			return Color(0.82, 0.72, 1.0)
+		"mutation":
+			return Color(0.62, 0.44, 0.92)
+		_:
+			return Color(0.78, 0.86, 0.94)
+
+func _skill_label(skill_id: String) -> String:
+	match skill_id:
+		"mobility":
+			return "Dash"
+		"impact":
+			return "Impact"
+		"summon":
+			return "Rune"
+		"aura":
+			return "Aura"
+		"mutation":
+			return "Shift"
+		_:
+			return ""
 
 func _terrain_label(terrain_id: String) -> String:
 	match terrain_id:
